@@ -1,0 +1,169 @@
+
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+    <head>
+        <meta charset="utf-8">
+        <style>
+            table { border-collapse: collapse; width: 100%; font-family: 'Segoe UI', sans-serif; }
+            th { background-color: #0f172a; color: #ffffff; padding: 12px; font-weight: bold; border: 1px solid #334155; }
+            td { padding: 10px; border: 1px solid #cbd5e1; vertical-align: middle; }
+        </style>
+    </head>
+    <body>
+        <table>
+            <thead>
+                <tr><th>Client Name</th><th>Phone</th><th>Executive</th><th>Writer ID</th><th>Service</th><th>Current Phase</th><th>Current Step Name</th><th>Progress (%)</th><th>Total Value</th><th>Last Activity Date</th></tr>
+            </thead>
+            <tbody><tr>
+            <td>Dr. Madhu </td><td>+91 98055 04509 </td><td>Basant</td><td>N/A</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 2</td><td>Client feedback collected</td><td>43%</td><td>40120</td><td>8/10/2026, 3:14:23 AM</td>
+        </tr><tr>
+            <td>Mr. Mito Riba</td><td>9485231612</td><td>Abhishek Sharma</td><td>340799</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>64900</td><td>7/3/2026, 11:59:38 PM</td>
+        </tr><tr>
+            <td>Dr. Anshuman Singh</td><td>8123307045</td><td>Abhishek Sharma</td><td>340799</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>64900</td><td>5/28/2026, 12:20:53 AM</td>
+        </tr><tr>
+            <td>Ms. Sanitha N</td><td>8848253524</td><td>Shaurya XD</td><td>340799</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>47200</td><td>6/14/2026, 7:41:36 PM</td>
+        </tr><tr>
+            <td>Sarabjeet</td><td>+91 89743 91514</td><td>Ramzana</td><td>N/A</td>
+            <td>undefined</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>0</td><td>8/3/2026, 2:52:38 PM</td>
+        </tr><tr>
+            <td>Ms. Adrija Chattopadhyay</td><td>9163999383</td><td>Shaurya XD</td><td>135383</td>
+            <td>Systematic Review With Meta</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>29500</td><td>6/13/2026, 12:29:39 AM</td>
+        </tr><tr>
+            <td>Dr. Milcah</td><td>7902410889</td><td>Abhishek Sharma</td><td>284646</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>60180</td><td>4/6/2026, 4:42:00 PM</td>
+        </tr><tr>
+            <td>Biplab Biswas</td><td>7002389433</td><td>Shaurya XD</td><td>340799</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>35400</td><td>6/17/2026, 5:47:17 PM</td>
+        </tr><tr>
+            <td>ibrahim</td><td>9326491513</td><td>Shaurya XD</td><td>0</td>
+            <td>Synopsis</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>6666</td><td>7/6/2026, 12:19:23 AM</td>
+        </tr><tr>
+            <td>Ms. Chattopadhyay</td><td>9163999383</td><td>Abhishek Sharma</td><td>340799</td>
+            <td>SCOPUS Research Paper</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>29500</td><td>6/25/2026, 2:57:14 PM</td>
+        </tr><tr>
+            <td>Mr. Subham Sahoo</td><td>9777371378</td><td>Supriya Guru</td><td>550051</td>
+            <td>Systematic Review With Meta</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>20000</td><td>6/26/2026, 10:09:38 PM</td>
+        </tr><tr>
+            <td>Dr. Burhan Ali</td><td>+91 97065 83312</td><td>Alka</td><td>135383</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>24000</td><td>7/9/2026, 4:02:11 PM</td>
+        </tr><tr>
+            <td>Miss.  Neha</td><td>729101 4298</td><td>Alka</td><td>340799</td>
+            <td>Research Proposal</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>5000</td><td>7/28/2026, 3:07:24 PM</td>
+        </tr><tr>
+            <td>Mr.Ashok Kumar Pandey</td><td>+91 90977 77727 </td><td>Shaurya XD</td><td>340799</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>40000</td><td>7/16/2026, 11:23:16 AM</td>
+        </tr><tr>
+            <td>Bhaiya yaar</td><td>9918543657</td><td>Sales Admin</td><td>497023</td>
+            <td>Synopsis</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>0</td><td>5/14/2026, 7:03:19 PM</td>
+        </tr><tr>
+            <td>Ms. Kiranmayee Yadav</td><td>7659076332</td><td>Supriya Guru</td><td>340799</td>
+            <td>SCOPUS Research Paper</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>20000</td><td>8/4/2026, 12:25:57 PM</td>
+        </tr><tr>
+            <td>Ms.Yashaswini </td><td>+91 96672 24654</td><td>Ayman Fathima</td><td>550051</td>
+            <td>Systematic Review With Meta</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>15000</td><td>7/14/2026, 8:35:09 PM</td>
+        </tr><tr>
+            <td>Mr. Tamoghna</td><td>7980298268</td><td>Abhishek Sharma</td><td>135383</td>
+            <td></td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>29500</td><td>7/8/2026, 2:10:20 PM</td>
+        </tr><tr>
+            <td>Mr. Brajesh Kumar mathur</td><td>Braj.manne@gmail.com</td><td>Ramzana</td><td>953352</td>
+            <td>Synopsis</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>5000</td><td>8/3/2026, 2:44:33 PM</td>
+        </tr><tr>
+            <td>Mr. Atul Yadav</td><td>8738084272</td><td>Ramzana</td><td>186849</td>
+            <td>Bibliometric Review Paper</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>33000</td><td>7/20/2026, 4:24:01 PM</td>
+        </tr><tr>
+            <td>Dr. Sutapa Bhowmik</td><td>9831287086</td><td>Abhishek Sharma</td><td>806817</td>
+            <td>SCOPUS Research Paper</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>14000</td><td>4/20/2026, 1:54:43 PM</td>
+        </tr><tr>
+            <td>Dr. Ajaz ahmad waza</td><td>7006588183</td><td>Alka</td><td>135383</td>
+            <td>Systematic Review With Meta</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>29500</td><td>7/25/2026, 3:50:23 PM</td>
+        </tr><tr>
+            <td>Mr. Bitupan Mahanta</td><td>+91 93653 15572</td><td>Alka</td><td>186849</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>30000</td><td>6/25/2026, 9:25:29 AM</td>
+        </tr><tr>
+            <td>Mr. Abu farah</td><td>+91 95317 94792</td><td>Supriya Guru</td><td>186849</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>31000</td><td>7/24/2026, 7:10:41 PM</td>
+        </tr><tr>
+            <td>Dr.Subhrajyoti</td><td>+91 73812 18856</td><td>Ayman Fathima</td><td>550051</td>
+            <td>Systematic Review Paper</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>0</td><td>7/29/2026, 5:42:37 PM</td>
+        </tr><tr>
+            <td>Ms. Minhaaj</td><td>7330402997</td><td>Abhishek Sharma</td><td>953352</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>60000</td><td>5/19/2026, 2:23:02 PM</td>
+        </tr><tr>
+            <td>Mr. Danish kamal</td><td>+91 91425 09756</td><td>Supriya Guru</td><td>550051</td>
+            <td>Systematic Review With Meta</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>25000</td><td>7/9/2026, 12:43:27 PM</td>
+        </tr><tr>
+            <td>Mr. Niluptal</td><td>+91 70020 06714</td><td>Ramzana</td><td>135383</td>
+            <td>Bibliometric Review Paper</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>13000</td><td>8/3/2026, 2:45:20 PM</td>
+        </tr><tr>
+            <td>Mr. Deepak</td><td>9744572774</td><td>Ayman Fathima</td><td>340799</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>30000</td><td>8/8/2026, 12:00:16 PM</td>
+        </tr><tr>
+            <td>Dr. Shubhangi Ingole</td><td>9049510846</td><td>Abhishek Sharma</td><td>141380</td>
+            <td>Publication</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>180000</td><td>5/2/2026, 12:20:36 PM</td>
+        </tr><tr>
+            <td>Ms. Nivi</td><td>8940701359</td><td>Abhishek Sharma</td><td>135383</td>
+            <td>SCOPUS Research Paper</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>25960</td><td>6/10/2026, 5:44:03 PM</td>
+        </tr><tr>
+            <td>Mr. Vinayak Yadav</td><td>+91 77804 86019</td><td>Ayman Fathima</td><td>340799</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>40000</td><td>8/8/2026, 12:08:56 PM</td>
+        </tr><tr>
+            <td>Mr. Manoj singh Negi</td><td>+91 9634421976</td><td>Ramzana</td><td>186849</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>30030</td><td>8/7/2026, 4:40:41 PM</td>
+        </tr><tr>
+            <td>Mr. Sajjan kumar</td><td>9708828841</td><td>Ayman Fathima</td><td>135383</td>
+            <td>Synopsis</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>10000</td><td>6/23/2026, 5:37:08 PM</td>
+        </tr><tr>
+            <td>Dr. Abhishek </td><td>+91 96142 49189</td><td>SK Tewari</td><td>284646</td>
+            <td>SCOPUS Research Paper</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>25960</td><td>4/13/2026, 12:10:02 PM</td>
+        </tr><tr>
+            <td>Mr.Ankush pingale</td><td>+91 97673 60761</td><td>Ayman Fathima</td><td>340799</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>50000</td><td>6/13/2026, 6:23:01 PM</td>
+        </tr><tr>
+            <td>Mr. Sarabjeet</td><td>8974391514</td><td>Ramzana</td><td>340799</td>
+            <td>Others</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>15000</td><td>7/30/2026, 3:08:03 PM</td>
+        </tr><tr>
+            <td>Ms. Ponni</td><td>6385414579</td><td>Supriya Guru</td><td>135383</td>
+            <td>Systematic Review With Meta</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>29500</td><td>7/10/2026, 5:38:00 PM</td>
+        </tr><tr>
+            <td>Dr. Piyush Kumar Mishra</td><td>9163636535</td><td>Alka</td><td>340799</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>20000</td><td>7/29/2026, 7:36:58 PM</td>
+        </tr><tr>
+            <td>Mr. Shrikant K Nair</td><td>8209811762</td><td>Abhishek Sharma</td><td>135383</td>
+            <td>Systematic Review Paper</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>20000</td><td>6/28/2026, 2:56:47 PM</td>
+        </tr><tr>
+            <td>Dr. Mononjit Baruah</td><td>9707806308</td><td>Abhishek Sharma</td><td>284646</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>44840</td><td>4/10/2026, 12:09:35 AM</td>
+        </tr><tr>
+            <td>Dr. Kajal</td><td>9763073800</td><td>Abhishek Sharma</td><td>141380</td>
+            <td>SCOPUS Research Paper</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>8000</td><td>4/4/2026, 11:23:40 AM</td>
+        </tr><tr>
+            <td>Mr. Govind Singh</td><td>+91 82851 51160</td><td>Ramzana</td><td>744549</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>32000</td><td>7/15/2026, 2:42:04 PM</td>
+        </tr><tr>
+            <td>Kishalaya Chakraborty</td><td>7637012826</td><td>SK Tewari</td><td>806817</td>
+            <td>Data Analysis</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>20060</td><td>4/15/2026, 12:42:34 PM</td>
+        </tr><tr>
+            <td>Dr. Apoorva Tyagi</td><td>7017582209</td><td>Abhishek Sharma</td><td>284646</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>35000</td><td>4/6/2026, 9:09:33 PM</td>
+        </tr><tr>
+            <td>Rahul Badgujar</td><td>8767346075</td><td>Chandan shukla</td><td>141380</td>
+            <td>Standard Review Paper</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>10000</td><td>4/4/2026, 11:20:53 AM</td>
+        </tr><tr>
+            <td>Mr. Jyotsalya</td><td>+91 70819 56849</td><td>Supriya Guru</td><td>186849</td>
+            <td>Thesis 180-220 Pages</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>64900</td><td>8/7/2026, 7:24:11 PM</td>
+        </tr><tr>
+            <td>Ms.Nidhi Sangar Sharma</td><td>9972595351</td><td>Ayman Fathima</td><td>550051</td>
+            <td>Systematic Review Paper</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>20000</td><td>7/9/2026, 9:34:19 AM</td>
+        </tr><tr>
+            <td>Mr. Varun pohekar</td><td>+91 84463 93192</td><td>Ayman Fathima</td><td>550051</td>
+            <td>Systematic Review With Meta</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>17700</td><td>7/7/2026, 9:14:59 PM</td>
+        </tr><tr>
+            <td>Mr. Lingkamang</td><td>+91 86384 44147</td><td>Ayman Fathima</td><td>186849</td>
+            <td>SCOPUS Research Paper</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>15000</td><td>8/8/2026, 11:58:39 AM</td>
+        </tr><tr>
+            <td>Mr. Meclin A Francis</td><td>9363722166</td><td>Supriya Guru</td><td>N/A</td>
+            <td>Systematic Review Paper</td><td>Phase 1</td><td>CLIENT INFORMATION ADDED TO CRM</td><td>0%</td><td>15000</td><td>7/21/2026, 3:03:41 PM</td>
+        </tr></tbody></table></body></html>
