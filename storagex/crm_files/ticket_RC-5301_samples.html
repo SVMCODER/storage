@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><script type="text/javascript" src="/___vscode_livepreview_injected_script"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Document Viewer | Research Connect</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <style>
+        :root {
+            --bg-base: #030303;
+            --bg-panel: #0a0a0a;
+            --border: #1f1f1f;
+            --accent: #06b6d4;
+            --accent-glow: rgba(6, 182, 212, 0.15);
+            --text-main: #ffffff;
+            --text-muted: #888888;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background: var(--bg-base); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* Glassmorphism Navbar */
+        nav { background: rgba(3, 3, 3, 0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; z-index: 100;}
+        .brand { font-size: 1.15rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 10px; letter-spacing: 0.5px;}
+        .brand i { color: var(--accent); font-size: 1.4rem; filter: drop-shadow(0 0 12px var(--accent-glow)); }
+        .nav-badge { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 8px;}
+        
+        /* Split Layout */
+        .viewer-container { display: flex; flex: 1; overflow: hidden; }
+        
+        /* Left Sidebar (Details) */
+        .details-panel { width: 420px; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; position: relative;}
+        .details-scroll-area { padding: 40px 32px; overflow-y: auto; flex: 1; }
+        .details-scroll-area::-webkit-scrollbar { width: 4px; }
+        .details-scroll-area::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        
+        .cat-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-glow); color: var(--accent); border: 1px solid rgba(6,182,212,0.3); padding: 6px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 24px;}
+        .sample-title { font-size: 1.8rem; font-weight: 800; line-height: 1.3; margin-bottom: 16px; color: #fff;}
+        .sample-desc { color: #a1a1aa; font-size: 0.95rem; line-height: 1.6; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid var(--border);}
+        
+        .meta-grid { display: grid; gap: 24px; margin-bottom: 40px; }
+        .meta-item { display: flex; align-items: flex-start; gap: 16px; }
+        .meta-icon { width: 40px; height: 40px; border-radius: 10px; background: #111; border: 1px solid #222; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #888; flex-shrink: 0;}
+        .meta-text { display: flex; flex-direction: column; gap: 4px; }
+        .meta-label { font-size: 0.7rem; color: #666; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;}
+        .meta-value { font-size: 0.9rem; color: #e5e7eb; font-weight: 600; line-height: 1.4; word-break: break-all;}
+        
+        .download-footer { padding: 24px 32px; background: #050505; border-top: 1px solid var(--border); flex-shrink: 0;}
+        .download-btn { background: #fff; color: #000; padding: 16px 24px; border-radius: 12px; text-decoration: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.2s; border: none; cursor: pointer; font-size: 1rem; width: 100%; box-shadow: 0 4px 15px rgba(255,255,255,0.1);}
+        .download-btn:hover { background: #e5e5e5; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,255,255,0.2); }
+        
+        /* Right Side (Preview) */
+        .preview-panel { flex: 1; background: #000; padding: 24px; display: flex; align-items: center; justify-content: center; position: relative;}
+        .preview-wrapper { width: 100%; height: 100%; background: #0a0a0a; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; flex-direction: column; position: relative;}
+        
+        .iframe-container { width: 100%; height: 100%; background: #fff; }
+        iframe { width: 100%; height: 100%; border: none; }
+        
+        .no-preview { text-align: center; color: var(--text-muted); background: #050505; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 16px;}
+        .no-preview i { font-size: 5rem; color: #222; margin-bottom: 24px; }
+        .no-preview h3 { color: #fff; font-size: 1.4rem; margin-bottom: 12px;}
+        .no-preview p { color: #888; font-size: 0.95rem; line-height: 1.6; max-width: 400px; margin: 0 auto;}
+        
+        /* Loader & Error States */
+        .full-screen-state { position: fixed; inset: 0; background: var(--bg-body); z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { font-size: 3rem; color: var(--accent); margin-bottom: 20px; animation: spin 1s linear infinite; }
+        .error-icon { font-size: 4rem; color: #ef4444; margin-bottom: 20px; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        @media(max-width: 900px) {
+            .viewer-container { flex-direction: column; overflow-y: auto; }
+            .details-panel { width: 100%; border-right: none; border-bottom: 1px solid var(--border); height: auto; flex-shrink: 0; display: block;}
+            .details-scroll-area { padding: 32px 24px; overflow: visible;}
+            .preview-panel { min-height: 80vh; padding: 16px;}
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="brand"><i class="fa-solid fa-flask"></i> Research Connect</div>
+        <div class="nav-badge"><i class="fa-solid fa-shield-halved" style="color:var(--accent);"></i> Encrypted Vault</div>
+    </nav>
+
+    <div class="full-screen-state" id="loader-state">
+        <i class="fa-solid fa-circle-notch spinner"></i>
+        <h3 style="color:#fff; font-weight:600;">Authenticating Document...</h3>
+    </div>
+
+    <div class="viewer-container" id="content-container" style="display:none;">
+        <!-- Left Panel: Details injected via JS -->
+    </div>
+
+    <script>
+        // INIT FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyBDeDc6pWhghXmGYg9QYQ3nVAGTpo1u5AM",
+            authDomain: "research-craft.firebaseapp.com",
+            projectId: "research-craft"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const sampleId = urlParams.get('id');
+        const loader = document.getElementById('loader-state');
+        const container = document.getElementById('content-container');
+
+        function showError(icon, title, desc) {
+            loader.innerHTML = `
+                <i class="fa-solid ${icon} error-icon"></i>
+                <h2 style="color:#fff; margin-bottom:12px; font-weight:800; font-size: 1.8rem;">${title}</h2>
+                <p style="color:#888; font-size: 1rem; max-width: 400px; text-align: center; line-height: 1.5;">${desc}</p>
+            `;
+        }
+
+        if(!sampleId) {
+            showError('fa-link-slash', 'Invalid Secure Link', 'This link is malformed or missing a valid document identifier. Please contact support.');
+        } else {
+            db.collection('crm_files').doc(sampleId).get().then(doc => {
+                if(!doc.exists) {
+                    showError('fa-ghost', 'Document Not Found', 'This sample has been revoked, expired, or permanently deleted by the administrator.');
+                    return;
+                }
+
+                const s = doc.data();
+                const fileNameLower = s.filename.toLowerCase();
+                const isPdf = fileNameLower.endsWith('.pdf');
+                const isDoc = fileNameLower.match(/\.(doc|docx)$/);
+                const isZip = fileNameLower.match(/\.(zip|rar)$/);
+                
+                let iconClass = 'fa-file-lines'; let iconColor = '#888'; let fileType = 'Standard Document';
+                if (isPdf) { iconClass = 'fa-file-pdf'; iconColor = '#ef4444'; fileType = 'PDF Document'; }
+                else if (isZip) { iconClass = 'fa-file-zipper'; iconColor = '#eab308'; fileType = 'Compressed Archive'; }
+                else if (isDoc) { iconClass = 'fa-file-word'; iconColor = '#3b82f6'; fileType = 'Word Document'; }
+
+                const uploadDate = s.createdAt ? new Date(s.createdAt.seconds * 1000).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'}) : 'Unknown Date';
+
+                // Robust Preview Engine
+                let previewHtml = '';
+                if(isPdf) {
+                    previewHtml = `<div class="iframe-container"><iframe src="${s.url}#toolbar=0" title="PDF Preview"></iframe></div>`;
+                } else if(isDoc) {
+                    // Embed Word documents securely via Google Docs Viewer
+                    const encodedUrl = encodeURIComponent(s.url);
+                    previewHtml = `<div class="iframe-container"><iframe src="https://docs.google.com/gview?url=${encodedUrl}&embedded=true" title="Document Preview"></iframe></div>`;
+                } else {
+                    previewHtml = `
+                        <div class="no-preview">
+                            <i class="fa-solid ${iconClass}" style="color:${iconColor}; opacity:0.8;"></i>
+                            <h3>Live Preview Unavailable</h3>
+                            <p>This format (${fileType}) cannot be rendered directly inside the secure viewer window. Please download the original file to review its contents locally.</p>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = `
+                    <div class="details-panel">
+                        <div class="details-scroll-area">
+                            <div class="cat-badge"><i class="fa-solid fa-layer-group"></i> ${s.subType}</div>
+                            <h1 class="sample-title">${s.title}</h1>
+                            <p class="sample-desc">${s.description || 'A comprehensive reference document provided by Research Connect showcasing methodology, structural depth, and academic standards.'}</p>
+                            
+                            <div class="meta-grid">
+                                <div class="meta-item">
+                                    <div class="meta-icon"><i class="fa-solid fa-hard-drive"></i></div>
+                                    <div class="meta-text">
+                                        <span class="meta-label">Original Filename</span>
+                                        <span class="meta-value">${s.filename}</span>
+                                    </div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-icon" style="color:${iconColor};"><i class="fa-solid ${iconClass}"></i></div>
+                                    <div class="meta-text">
+                                        <span class="meta-label">File Format</span>
+                                        <span class="meta-value">${fileType}</span>
+                                    </div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-icon" style="color:#10b981;"><i class="fa-regular fa-calendar-check"></i></div>
+                                    <div class="meta-text">
+                                        <span class="meta-label">Uploaded On</span>
+                                        <span class="meta-value">${uploadDate}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="download-footer">
+                            <a href="${s.url}" class="download-btn" target="_blank" download>
+                                <i class="fa-solid fa-cloud-arrow-down"></i> Download Original File
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-panel">
+                        <div class="preview-wrapper">
+                            ${previewHtml}
+                        </div>
+                    </div>
+                `;
+                
+                loader.style.display = 'none';
+                container.style.display = 'flex';
+                
+            }).catch(e => {
+                console.error(e);
+                showError('fa-wifi', 'Connection Error', 'Could not establish a secure connection to the vault. Please check your network and try again.');
+            });
+        }
+    </script>
+</body>
+</html>
