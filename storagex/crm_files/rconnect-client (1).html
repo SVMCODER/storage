@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Client Portal | Research Connect</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <style>
+        /* --- 1. ENTERPRISE DARK THEME ONLY --- */
+        :root {
+            --bg-body: #050505; --bg-sidebar: #0a0a0a; --bg-card: #111111; --bg-hover: #1e1e1e;
+            --primary-purple: #a855f7; --primary-glow: rgba(168, 85, 247, 0.25); --accent-dark: #7e22ce;
+            --danger: #ef4444; --warning: #f59e0b; --success: #10b981; --info: #3b82f6;
+            --text-main: #f8fafc; --text-muted: #94a3b8; --border: #2a2a2a;
+            --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; outline:none; font-family: 'Inter', -apple-system, sans-serif; user-select: none; -webkit-user-drag: none;}
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-body); }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary-purple); }
+        input, textarea { outline:none; resize:none; user-select: auto; color: white; }
+        
+        body { background-color: var(--bg-body); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; font-size: 14px; opacity: 0; transition: opacity 0.6s ease; }
+
+        /* --- 2. DESKTOP ENFORCER --- */
+        #desktop-enforcer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-body); z-index: 999999; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 30px; }
+        #desktop-enforcer i { font-size: 4rem; color: var(--primary-purple); margin-bottom: 20px; }
+        @media (max-width: 1024px) { #desktop-enforcer { display: flex; } #app-container { display: none !important; } }
+
+        /* --- 3. LAYOUT & SIDEBAR --- */
+        #app-container { display: flex; width: 100%; height: 100%; }
+        .sidebar { width: 280px; background: var(--bg-sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 100; flex-shrink: 0; }
+        .brand-section { height: 70px; display: flex; align-items: center; padding: 0 24px; border-bottom: 1px solid var(--border); font-size: 1.2rem; font-weight: 800; letter-spacing: 0.5px; color: var(--primary-purple);}
+        .brand-section i { margin-right: 10px; font-size: 1.5rem; filter: drop-shadow(0 0 10px var(--primary-glow)); }
+        
+        .nav-scroller { flex: 1; padding: 20px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
+        .nav-group { margin-bottom: 5px; }
+        .nav-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-radius: 8px; color: var(--text-muted); font-size: 0.85rem; font-weight: 700; transition: 0.3s; text-transform: uppercase;  border: 1px solid transparent; }
+        .nav-header:hover { background: var(--bg-hover); color: var(--text-main); }
+        .nav-header i.icon-main { width: 24px; font-size: 1.1rem; color: var(--primary-purple); }
+        .nav-header i.chevron { font-size: 0.8rem; transition: transform 0.3s; }
+        
+        .nav-items-container { max-height: 0; overflow: hidden; transition: max-height 0.4s var(--ease-smooth); padding-left: 10px; }
+        .nav-group.active > .nav-items-container { max-height: 800px; padding-top: 5px; padding-bottom: 5px; }
+        .nav-group.active > .nav-header i.chevron { transform: rotate(180deg); }
+        
+        .nav-item { display: flex; align-items: center; padding: 10px 16px 10px 30px; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; transition: 0.3s; border-radius: 8px; margin-bottom: 2px;  justify-content: space-between;}
+        .nav-item:hover { color: var(--text-main); background: rgba(255,255,255,0.05); transform: translateX(4px); }
+        .nav-item.active-link { color: white; font-weight: 700; background: var(--primary-purple); padding-left: 27px; transform: translateX(0); }
+        .nav-item.active-link .badge-count { background: rgba(0,0,0,0.5); color: white; }
+        .badge-count { background: var(--bg-hover); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; color: var(--text-main); transition: 0.3s;}
+
+        .sidebar-footer { padding: 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
+        .user-profile-mini { display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--border); }
+        .avatar-circle { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-purple), var(--accent-dark)); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background: radial-gradient(circle at top right, rgba(168, 85, 247, 0.05), transparent 50%); }
+        .top-bar { height: 70px; border-bottom: 1px solid var(--border); background: rgba(5, 5, 5, 0.8); backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; z-index: 50; }
+        .content-area { flex: 1; padding: 32px; overflow-y: auto; display: flex; flex-direction: column; scroll-behavior: smooth; position: relative;}
+
+        /* --- 4. UI COMPONENTS --- */
+        .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; }
+        .page-header h2 { font-size: 1.8rem; font-weight: 800; color: white; margin-bottom: 4px; }
+        .page-header p { color: var(--text-muted); font-size: 0.9rem; }
+        
+        .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 0.8rem; transition: 0.2s var(--ease-smooth); border: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary { background: linear-gradient(135deg, var(--primary-purple), var(--accent-dark)); color: white; box-shadow: 0 4px 15px var(--primary-glow); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5); }
+        .btn-secondary { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); }
+        .btn-secondary:hover { border-color: var(--primary-purple); background: rgba(168,85,247,0.05); color: var(--primary-purple); }
+        .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .btn-danger:hover { background: var(--danger); color: white; }
+        .btn-sm { padding: 8px 12px; font-size: 0.75rem; border-radius: 6px; }
+
+        .panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; margin-bottom: 24px; flex: 1; box-shadow: 0 4px 20px rgba(0,0,0,0.2);}
+        .panel-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.01); }
+        .panel-header h3 { font-size: 1.1rem; font-weight: 700; color: var(--primary-purple); }
+        .panel-body { padding: 24px; flex: 1; position: relative; overflow-y: auto;}
+
+        .grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-bottom: 32px; }
+
+        /* Quick Access Buttons */
+        .qa-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .qa-card { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; transition: 0.3s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+        .qa-card:hover { background: rgba(168,85,247,0.05); border-color: var(--primary-purple); transform: translateY(-3px); }
+        .qa-card i { font-size: 1.8rem; color: var(--primary-purple); }
+        .qa-card span { font-weight: 600; color: white; font-size: 0.9rem; }
+
+        /* Service Cards */
+        .service-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .service-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 25px; text-align: center;  transition: 0.3s var(--ease-smooth); position: relative; overflow: hidden; }
+        .service-card:hover { transform: translateY(-5px); border-color: var(--primary-purple); box-shadow: 0 10px 25px var(--primary-glow); background: rgba(168,85,247,0.02); }
+        .service-icon { font-size: 3rem; color: var(--primary-purple); margin-bottom: 15px; }
+
+        /* Rich Project Cards */
+        .rich-lead-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; transition: 0.3s; position: relative; overflow: hidden; }
+        .rich-lead-card:hover { border-color: var(--primary-purple); box-shadow: 0 10px 30px rgba(0,0,0,0.3); transform: translateY(-3px); }
+        .rlc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+        .rlc-title { font-size: 1.2rem; font-weight: 800; color: white; margin-bottom: 5px; }
+        .rlc-service { color: var(--primary-purple); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
+        .rlc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .rlc-item { display: flex; flex-direction: column; gap: 4px; }
+        .rlc-item span { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+        .rlc-item strong { font-size: 0.95rem; color: white; }
+        .rlc-footer { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; border: 1px solid var(--border); }
+        
+        /* Animated Wavy Tracking Bar */
+        .tracking-bar { width: 100%; height: 10px; background: rgba(168,85,247,0.1); border-radius: 5px; overflow: hidden; position: relative; margin-top: 8px; }
+        .tracking-bar::after { content: ''; position: absolute; top: 0; left: 0; width: 50%; height: 100%; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='10' viewBox='0 0 24 10'%3E%3Cpath d='M0 5 Q6 0 12 5 T24 5' fill='none' stroke='%23a855f7' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: repeat-x; background-position: left center; animation: tracking-slide 3s infinite ease-in-out, wave-flow 0.8s infinite linear; }
+        @keyframes tracking-slide { 0% { transform: translateX(-100%); width: 30%; } 50% { width: 60%; } 100% { transform: translateX(350%); width: 30%; } }
+        @keyframes wave-flow { 0% { background-position: 0 center; } 100% { background-position: -24px center; } }
+
+        /* Tables & Empty States */
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .data-table th { padding: 16px 20px; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); font-weight: 700; background: rgba(255,255,255,0.01); }
+        .data-table td { padding: 16px 20px; border-bottom: 1px solid var(--border); font-size: 0.9rem; transition: background 0.2s; }
+        .data-table tr.data-row { transition: all 0.2s var(--ease-smooth); }
+        .data-table tr.data-row:hover td { background: rgba(168, 85, 247, 0.05); }
+
+        .empty-state { padding: 60px 20px; text-align: center; color: var(--text-muted); display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; }
+        .empty-state i { font-size: 3.5rem; margin-bottom: 15px; opacity: 0.5; color: var(--primary-purple); }
+        .empty-state h3 { font-size: 1.2rem; color: white; margin-bottom: 5px; }
+        .empty-state p { font-size: 0.9rem; }
+        
+        .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; margin-bottom:2px;}
+        .bg-purple { background: rgba(168, 85, 247, 0.15); color: var(--primary-purple); border: 1px solid rgba(168, 85, 247, 0.3); }
+        .bg-success { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .bg-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .bg-danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .bg-info { background: rgba(59, 130, 246, 0.15); color: var(--info); border: 1px solid rgba(59, 130, 246, 0.3); }
+
+        /* Payment Info Box */
+        .payment-info-box { background: rgba(168,85,247,0.05); border: 1px solid var(--primary-purple); border-radius: 12px; padding: 25px; margin-bottom: 25px; display: flex; gap: 25px; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .payment-info-box img { width: 120px; height: 120px; border-radius: 8px; border: 2px solid var(--border); }
+        .payment-info-details { flex: 1; }
+
+        /* Skeleton Loaders */
+        .skeleton-box { display: inline-block; height: 1em; position: relative; overflow: hidden; background-color: rgba(255,255,255,0.05); border-radius: 4px; }
+        .skeleton-box::after { position: absolute; top: 0; right: 0; bottom: 0; left: 0; transform: translateX(-100%); background-image: linear-gradient(90deg, rgba(255,255,255, 0) 0, rgba(255,255,255, 0.05) 20%, rgba(255,255,255, 0.1) 60%, rgba(255,255,255, 0)); animation: shimmer 2s infinite; content: ''; }
+        @keyframes shimmer { 100% { transform: translateX(100%); } }
+
+        /* Search & Filters */
+        .search-container { position: relative; width: 250px; }
+        .search-container input { width: 100%; background: var(--bg-card); border: 1px solid var(--border); padding: 8px 15px 8px 35px; border-radius: 8px; color: white; font-size: 0.85rem; transition: 0.3s; }
+        .search-container input:focus { border-color: var(--primary-purple); box-shadow: 0 0 0 3px rgba(168,85,247,0.1); }
+        .search-container i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .filter-bar { display: flex; gap: 15px; padding: 15px 20px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.01); align-items: center; flex-wrap: wrap; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border);}
+        .filter-bar .custom-select-wrapper { width: 200px; }
+
+        /* Modals & Forms */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 2000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s var(--ease-smooth); }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-card { background: var(--bg-card); border: 1px solid var(--border); width: 90%; max-width: 600px; border-radius: 16px; transform: scale(0.9) translateY(30px); opacity: 0; transition: 0.4s var(--ease-smooth); display: flex; flex-direction: column; max-height: 90vh; box-shadow: 0 25px 50px rgba(0,0,0,0.8); }
+        .modal-card.lg { max-width: 900px; } .modal-card.sm { max-width: 400px; }
+        .modal-overlay.active .modal-card { transform: scale(1) translateY(0); opacity: 1; }
+        
+        .modal-header { padding: 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.01); border-radius: 16px 16px 0 0;}
+        .modal-body { padding: 24px; overflow-y: auto; }
+        .modal-footer { padding: 20px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; background: rgba(0,0,0,0.2); border-radius: 0 0 16px 16px;}
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; position: relative; }
+        .form-group.full { grid-column: span 2; }
+        .form-group label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
+        .form-control { width: 100%; background: var(--bg-body); border: 1px solid var(--border); padding: 12px 16px; border-radius: 8px; color: white; font-size: 0.9rem; transition: 0.3s var(--ease-smooth);}
+        .form-control:focus { border-color: var(--primary-purple); box-shadow: 0 0 0 3px rgba(168,85,247,0.1); background: var(--bg-card); }
+        
+        /* Custom Selects */
+        select.hidden-native { display: none !important; }
+        .custom-select-wrapper { position: relative; width: 100%; user-select: none; }
+        .custom-select-trigger { background: var(--bg-body); border: 1px solid var(--border); padding: 10px 16px; border-radius: 8px; color: white; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;  transition: 0.3s var(--ease-smooth); }
+        .custom-select-trigger:hover { border-color: var(--primary-purple); background: var(--bg-card); }
+        .custom-select-trigger.open { border-color: var(--primary-purple); box-shadow: 0 0 0 3px rgba(168,85,247,0.1); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+        .custom-select-options { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--primary-purple); border-top: none; border-radius: 0 0 8px 8px; margin-top: 0; z-index: 999; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .custom-select-options.open { display: block; animation: dropDown 0.2s ease forwards; }
+        .custom-select-option { padding: 10px 16px; font-size: 0.85rem; color: var(--text-muted); transition: 0.2s ease; border-bottom: 1px solid rgba(255,255,255,0.02); }
+        .custom-select-option:hover { background: rgba(168,85,247,0.1); color: var(--text-main); padding-left: 20px;}
+        .custom-select-option.selected { color: var(--primary-purple); font-weight: bold; background: rgba(168,85,247,0.05); border-left: 2px solid var(--primary-purple); padding-left: 14px; }
+        @keyframes dropDown { from{opacity:0; transform:translateY(-10px);} to{opacity:1; transform:translateY(0);} }
+
+        /* Toasts */
+        #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 12px; }
+        .toast { background: var(--bg-card); border-left: 4px solid var(--primary-purple); padding: 16px 24px; border-radius: 8px; color: white; display: flex; align-items: center; gap: 12px; animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-weight: 500;}
+        .toast.error { border-color: var(--danger); }
+        .toast.warning { border-color: var(--warning); }
+        .toast.success { border-color: var(--success); }
+        @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* SURGICAL FIX: Perfect Timeline Math */
+        .timeline { position: relative; padding-left: 45px; margin-top: 10px; margin-left: 5px; overflow: visible;}
+        .timeline::before { content: ''; position: absolute; left: 20px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+        .timeline-item { position: relative; margin-bottom: 25px; }
+        .timeline-item::before { content: ''; position: absolute; left: -31px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg-card); border: 2px solid var(--primary-purple); z-index: 2; box-sizing: border-box; }
+        .timeline-date { font-size: 0.8rem; color: var(--primary-purple); font-weight: 700; margin-bottom: 2px; }
+        .timeline-content { font-size: 1rem; font-weight: 600; color: white; }
+        .timeline-remark { font-size: 0.85rem; color: var(--text-muted); margin-top: 8px; background: rgba(255,255,255,0.03); padding: 10px 12px; border-left: 3px solid var(--border); border-radius: 4px; line-height: 1.5; }
+
+        /* Custom Time Slot UI */
+        .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top:10px; }
+        .slot-btn { background: var(--bg-body); border: 1px solid var(--border); color: var(--text-muted); padding: 10px; border-radius: 8px; text-align: center;  transition: 0.2s; font-size:0.85rem;}
+        .slot-btn:hover { border-color: var(--primary-purple); color: white; }
+        .slot-btn.selected { background: rgba(168,85,247,0.1); border-color: var(--primary-purple); color: var(--primary-purple); font-weight: bold; }
+        .slot-btn.disabled { opacity: 0.3; cursor: not-allowed; background: #111; border-color: #222; }
+
+    </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+</head>
+<body>
+
+    <div id="desktop-enforcer">
+        <i class="fa-solid fa-desktop"></i>
+        <h2 style="font-size: 2rem;">Desktop Mode Required</h2>
+        <p style="color: var(--text-muted); margin-top: 10px; max-width: 400px; line-height: 1.5;">This Portal requires a desktop environment for the best experience. Please access this page from a desktop or laptop computer.</p>
+    </div>
+
+    <div id="app-container">
+                <nav class="sidebar" id="sidebar">
+            <div class="brand-section">
+                <i class="fa-solid fa-chart-network"></i> Research Connect
+            </div>
+            <div class="nav-scroller">
+                
+                <div class="nav-group active">
+                    <div class="nav-header" onclick="loadView('Dashboard', this.parentElement)">
+                        <div><i class="fa-solid fa-gauge-high icon-main"></i> Dashboard</div>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-header" onclick="toggleNavGroup(this)">
+                        <div><i class="fa-solid fa-bars-progress icon-main"></i> Active Projects</div>
+                        <i class="fa-solid fa-chevron-down chevron"></i>
+                    </div>
+                    <div class="nav-items-container">
+                        <a class="nav-item" onclick="loadView('Proj_Processing', this)">Processing <span class="badge-count" id="b-proj-proc">0</span></a>
+                        <a class="nav-item" onclick="loadView('Proj_Revisions', this)">Revisions <span class="badge-count" id="b-proj-rev">0</span></a>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-header" onclick="loadView('Delivered', this)">
+                        <div><i class="fa-solid fa-check-double icon-main"></i> Delivered Projects <span class="badge-count" id="b-delivered">0</span></div>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-header" onclick="toggleNavGroup(this)">
+                        <div><i class="fa-solid fa-compass-drafting icon-main"></i> Research Services</div>
+                        <i class="fa-solid fa-chevron-down chevron"></i>
+                    </div>
+                    <div class="nav-items-container">
+                        <a class="nav-item" onclick="loadView('RequestServices', this)">Research Services</a>
+                    </div>
+                </div>
+
+                <div class="nav-group active">
+                    <div class="nav-header" onclick="toggleNavGroup(this)">
+                        <div><i class="fa-solid fa-briefcase icon-main"></i> Requested Services</div>
+                        <i class="fa-solid fa-chevron-down chevron"></i>
+                    </div>
+                    <div class="nav-items-container">
+                        <a class="nav-item" onclick="loadView('Req_Pending', this)">Pending <span class="badge-count" id="b-req-pen">0</span></a>
+                        <a class="nav-item" onclick="loadView('Req_Successful', this)">Successful <span class="badge-count" id="b-req-suc">0</span></a>
+                        <a class="nav-item" onclick="loadView('Req_TechCall', this)">Technical Call <span class="badge-count" id="b-req-tc">0</span></a>
+                        <a class="nav-item" onclick="loadView('Req_ReviewSamples', this)">Pending Payments <span class="badge-count" id="b-req-rev">0</span></a>
+                        <a class="nav-item" onclick="loadView('Req_Approved', this)">Approved  <span class="badge-count" id="b-req-app">0</span></a>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-header" onclick="toggleNavGroup(this)">
+                        <div><i class="fa-solid fa-wallet icon-main"></i> Financials</div>
+                        <i class="fa-solid fa-chevron-down chevron"></i>
+                    </div>
+                    <div class="nav-items-container">
+                        <a class="nav-item" onclick="loadView('Payments_Pending', this)">Pending Payments <span class="badge-count" id="b-pay-pen" style="color:var(--warning)">0</span></a>
+                        <a class="nav-item" onclick="loadView('Payments_History', this)">Payment History</a>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-header" onclick="toggleNavGroup(this)">
+                        <div><i class="fa-solid fa-toolbox icon-main"></i> Workspace</div>
+                        <i class="fa-solid fa-chevron-down chevron"></i>
+                    </div>
+                    <div class="nav-items-container">
+                        <a class="nav-item" onclick="loadView('Appointments', this)">Appointments <span class="badge-count" id="b-appt" style="background:rgba(168,85,247,0.3); color:white;">0</span></a>
+                        <a class="nav-item" onclick="loadView('FileManager', this)">Project Files</a>
+                    </div>
+                </div>
+                <div class="nav-group">
+                    <div class="nav-header" onclick="loadView('SecureChat', this)">
+                        <div><i class="fa-solid fa-comments icon-main"></i> Communication</div>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-header" onclick="toggleNavGroup(this)">
+                        <div><i class="fa-solid fa-globe icon-main" style="color:var(--info);"></i> Explore Zone</div>
+                        <i class="fa-solid fa-chevron-down chevron"></i>
+                    </div>
+                    <div class="nav-items-container">
+                        <a class="nav-item" onclick="loadView('Announcements', this)">Announcements</a>
+                        <a class="nav-item" onclick="loadView('EarnWithUs', this)" style="color:white">Earn with Us</a>
+                        <a class="nav-item" onclick="loadView('Community', this)">Community</a>
+                        <a class="nav-item" onclick="loadView('Webinar', this)">Webinars</a>
+                        <a class="nav-item" style="color:var(--text-muted); opacity:0.5; cursor:not-allowed;">PhD Admission (Soon)</a>
+                    </div>
+                </div>
+
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile-mini">
+                    <div class="avatar-circle" id="user-avatar">?</div>
+                    <div><h4 id="user-name-display" style="font-size:0.9rem; margin:0; color:white;">Loading...</h4><p style="font-size:0.7rem; margin:0; color:var(--text-muted)">Client Account</p></div>
+                </div>
+                <button class="btn-logout" onclick="confirmLogout()" style="width: 100%; padding: 10px; margin-top: 10px; border-radius: 8px; background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.3);  font-weight: 600; display:flex; justify-content:center; align-items:center; gap:8px; transition:0.2s;"><i class="fa-solid fa-power-off"></i> Secure Logout</button>
+            </div>
+        </nav>
+
+
+        <main class="main-wrapper">
+            <div class="top-bar">
+                <div class="breadcrumb">Portal / <span id="current-page-label" style="color:white; font-weight:700;">Dashboard</span></div>
+                <div class="search-container">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="global-search" placeholder="Search projects..." onkeyup="executeFilter()">
+                </div>
+            </div>
+            <div id="app-canvas" class="content-area"></div>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="app-modal">
+        <div class="modal-card" id="modal-card-inner">
+            <div class="modal-header">
+                <h3 id="modal-title" style="color:var(--primary-purple)">Action</h3>
+                <button class="btn" id="modal-close-btn" style="background:none; color:var(--text-muted); padding:0; font-size:1.2rem;" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-footer" id="modal-footer"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="confirm-modal" style="z-index: 3000;">
+        <div class="modal-card sm">
+            <div class="modal-header" style="border-bottom: none;">
+                <h3 id="confirm-title" style="color: white;">Confirm Action</h3>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message" style="color: var(--text-muted); font-size: 0.95rem;"></p>
+                <div id="confirm-remark-container" style="display:none; margin-top: 15px;">
+                    <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Remark (Required)</label>
+                    <textarea id="confirm-remark-input" class="form-control" placeholder="Add a note..." style="margin-top: 5px;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="background: transparent; border-top: none;">
+                <button class="btn btn-secondary" onclick="closeConfirm()">Cancel</button>
+                <button class="btn btn-primary" id="confirm-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+        // --- 1. FIREBASE INITIALIZATION & GLOBALS ---
+        const firebaseConfig = { apiKey: "AIzaSyBDeDc6pWhghXmGYg9QYQ3nVAGTpo1u5AM", authDomain: "research-craft.firebaseapp.com", projectId: "research-craft", storageBucket: "research-craft.firebasestorage.app" };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        // --- GITHUB CONFIG FOR FILE UPLOADS ---
+        const GIT_USER = "svmcoder"; // Replace with your GitHub Username
+        const GIT_REPO = "storage"; // Replace with your Repo Name
+        const GIT_BRANCH = "main";
+        const GIT_ROOT = "storagex";
+        const erzzz = "IN"
+        const GIT_TOKEN = `github_pat_11A5XMUYQ0Na7fup8jtFDF_ok79FR2Vf6mqf8q4R4zUUzQ4x7X5SaqUvNk3b9n${erzzz}9YJPAQTQIGGQYUDwKp`; // Replace with your actual token
+
+        let currentUser = null;
+        let clientData = {};
+        let myLeads = [];
+        let myPayments = [];
+        let myFiles = [];
+        let myAppointments = []; // New Global
+        let allSpecialists = []; // New Global
+        let allPosts = [
+            { authorName: "Admin System", text: "Welcome to the new portal. Referral tracking will launch soon.", createdAt: new Date() },
+            { authorName: "Research Connect Team", text: "System maintenance scheduled for this weekend. There will be zero downtime.", createdAt: new Date(Date.now() - 86400000) }
+        ];
+
+        let dashChart = null; 
+        window.currentView = 'Dashboard';
+        window.activeSort = 'newest';
+        let selectedTimeSlot = '';
+
+        // --- 2. UTILITY FUNCTIONS ---
+        function showToast(msg, type='success') { 
+            const container = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${type}`; 
+            let icon = type==='error'?'fa-circle-exclamation':(type==='warning'?'fa-triangle-exclamation':'fa-circle-check');
+            let color = type==='error'?'var(--danger)':(type==='warning'?'var(--warning)':'var(--success)');
+            toast.innerHTML = `<i class="fa-solid ${icon}" style="font-size:1.2rem; color:${color}"></i> <div>${msg}</div>`; 
+            container.appendChild(toast); 
+            setTimeout(() => { toast.style.transform = 'translateX(120%)'; toast.style.opacity = '0'; setTimeout(()=>toast.remove(), 400); }, 3500); 
+        }
+
+        function timeAgo(dateInput) {
+            if(!dateInput) return 'N/A';
+            const date = dateInput.seconds ? new Date(dateInput.seconds * 1000) : new Date(dateInput);
+            const seconds = Math.floor((new Date() - date) / 1000);
+            if (seconds < 60) return "Just now";
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return minutes + "m ago";
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return hours + "h ago";
+            const days = Math.floor(hours / 24);
+            if (days < 7) return days + "d ago";
+            return date.toLocaleDateString();
+        }
+
+        function showModal(title, body, footer) { document.getElementById('modal-title').innerText = title; document.getElementById('modal-body').innerHTML = body; document.getElementById('modal-footer').innerHTML = footer; document.getElementById('app-modal').classList.add('active'); }
+        function closeModal() { document.getElementById('app-modal').classList.remove('active'); }
+
+        let currentConfirmCallback = null;
+        function showConfirm(title, message, callback, requireRemark = false) { 
+            document.getElementById('confirm-title').innerText = title; document.getElementById('confirm-message').innerHTML = message; 
+            const rContainer = document.getElementById('confirm-remark-container'); const rInput = document.getElementById('confirm-remark-input');
+            if(requireRemark) { rContainer.style.display = 'block'; rInput.value = ''; } else { rContainer.style.display = 'none'; }
+            currentConfirmCallback = () => { 
+                if(requireRemark) { if(!rInput.value.trim()) return showToast("Remark is required.", "error"); callback(rInput.value.trim()); } else { callback(); }
+                closeConfirm(); 
+            }; 
+            document.getElementById('confirm-modal').classList.add('active'); document.getElementById('confirm-btn').onclick = currentConfirmCallback; 
+        }
+        function closeConfirm() { document.getElementById('confirm-modal').classList.remove('active'); currentConfirmCallback = null; }
+        function confirmLogout() { showConfirm("Secure Logout", "Are you sure you want to log out of your account?", () => { auth.signOut(); }); }
+
+        function initCustomSelects() {
+            document.querySelectorAll('select.form-control:not(.hidden-native)').forEach(select => {
+                select.classList.add('hidden-native');
+                const wrapper = document.createElement('div'); wrapper.className = 'custom-select-wrapper';
+                const trigger = document.createElement('div'); trigger.className = 'custom-select-trigger';
+                trigger.innerHTML = `<span>${select.options[select.selectedIndex]?.text || ''}</span> <i class="fa-solid fa-chevron-down" style="font-size:0.8rem; color:var(--text-muted)"></i>`;
+                const optionsContainer = document.createElement('div'); optionsContainer.className = 'custom-select-options';
+                Array.from(select.options).forEach((opt, index) => {
+                    const optDiv = document.createElement('div'); optDiv.className = `custom-select-option ${select.selectedIndex === index ? 'selected' : ''}`;
+                    optDiv.innerText = opt.text;
+                    optDiv.onclick = () => { select.selectedIndex = index; trigger.querySelector('span').innerText = opt.text; optionsContainer.querySelectorAll('.custom-select-option').forEach(el => el.classList.remove('selected')); optDiv.classList.add('selected'); optionsContainer.classList.remove('open'); select.dispatchEvent(new Event('change')); };
+                    optionsContainer.appendChild(optDiv);
+                });
+                trigger.onclick = (e) => { e.stopPropagation(); const isOpen = optionsContainer.classList.contains('open'); document.querySelectorAll('.custom-select-options').forEach(el => el.classList.remove('open')); if(!isOpen) optionsContainer.classList.add('open'); };
+                wrapper.appendChild(trigger); wrapper.appendChild(optionsContainer); select.parentNode.insertBefore(wrapper, select.nextSibling);
+            });
+            document.addEventListener('click', () => { document.querySelectorAll('.custom-select-options').forEach(el => el.classList.remove('open')); });
+        }
+
+        function toggleNavGroup(el) { el.parentElement.classList.toggle('active'); }
+
+        function getSkeletonHTML() {
+            return `
+            <div style="display:flex; gap:20px; margin-bottom:20px;">
+                <div class="skeleton-box" style="height:100px; flex:1; border-radius:12px;"></div>
+                <div class="skeleton-box" style="height:100px; flex:1; border-radius:12px;"></div>
+                <div class="skeleton-box" style="height:100px; flex:1; border-radius:12px;"></div>
+            </div>
+            <div class="skeleton-box" style="height:250px; width:100%; border-radius:12px;"></div>`;
+        }
+
+        function getFilterBarHTML() {
+            return `
+                <div class="filter-bar">
+                    <div class="custom-select-wrapper" style="width:220px;">
+                        <select class="form-control" onchange="window.activeSort = this.value; executeFilter();">
+                            <option value="newest" ${window.activeSort==='newest'?'selected':''}>Sort: Newest First</option>
+                            <option value="oldest" ${window.activeSort==='oldest'?'selected':''}>Sort: Oldest First</option>
+                            <option value="value-high" ${window.activeSort==='value-high'?'selected':''}>Sort: Value (High - Low)</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        }
+
+        function executeFilter() { loadView(window.currentView); }
+
+        function filterAndSortLeads(list) {
+            let q = document.getElementById('global-search').value.toLowerCase();
+            if(q) list = list.filter(l => (l.Title&&l.Title.toLowerCase().includes(q)) || (l.service&&l.service.toLowerCase().includes(q)));
+            
+            if(window.activeSort === 'newest') list.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+            else if(window.activeSort === 'oldest') list.sort((a,b) => (a.createdAt?.seconds||0) - (b.createdAt?.seconds||0));
+            else if(window.activeSort === 'value-high') list.sort((a,b) => (b.estimatedValue||0) - (a.estimatedValue||0));
+            
+            return list;
+        }
+
+        function updateBadge(id, count) {
+            const el = document.getElementById(id);
+            if (el) el.innerText = count;
+        }
+
+        // --- 3. AUTHENTICATION & INITIALIZATION ---
+        auth.onAuthStateChanged(async user => {
+            if (user) {
+                currentUser = user; document.body.style.opacity = 1; 
+                await fetchProfile(user); initDataListeners();
+            } else { window.location.replace('/'); }
+        });
+
+        async function fetchProfile(user) {
+            const docRef = db.collection('clients').doc(user.uid); const docSnap = await docRef.get();
+            if (docSnap.exists) {
+                clientData = docSnap.data();
+                if(!clientData.phone || !clientData.name) promptClientDetails();
+            } else {
+                clientData = { name: user.displayName || '', email: user.email, phone: '', referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(), earnings: 0, paymentDetails: '', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                await docRef.set(clientData); promptClientDetails();
+            }
+            document.getElementById('user-name-display').innerText = clientData.name || 'Client';
+            document.getElementById('user-avatar').innerText = (clientData.name || 'C').charAt(0).toUpperCase();
+        }
+
+        function promptClientDetails() {
+            const html = `<div class="form-group full"><label>Full Name *</label><input type="text" id="req-name" class="form-control" value="${clientData.name || currentUser.displayName || ''}"></div><div class="form-group full"><label>Phone Number *</label><input type="text" id="req-phone" class="form-control" placeholder="+91 xxxxxxxxxx" value="${clientData.phone || ''}"></div>`;
+            document.getElementById('modal-close-btn').style.display = 'none'; // Force filling
+            showModal('Complete Your Profile', html, `<button class="btn btn-primary" onclick="saveInitialDetails()">Save Details</button>`);
+            document.getElementById('modal-card-inner').className = 'modal-card sm';
+        }
+
+        async function saveInitialDetails() {
+            const n = document.getElementById('req-name').value.trim(); const p = document.getElementById('req-phone').value.trim();
+            if(!n || !p) return showToast("Both Name and Phone are required.", "error");
+            await db.collection('clients').doc(currentUser.uid).update({ name: n, phone: p });
+            clientData.name = n; clientData.phone = p;
+            document.getElementById('user-name-display').innerText = n; document.getElementById('user-avatar').innerText = n.charAt(0).toUpperCase();
+            document.getElementById('modal-close-btn').style.display = 'block'; showToast("Profile completed successfully!"); closeModal();
+        }
+
+        let isInitialLoad = true;
+        function initDataListeners() {
+            document.getElementById('app-canvas').innerHTML = getSkeletonHTML(); 
+
+            db.collection('leads').where('email', '==', currentUser.email).onSnapshot(snap => {
+                myLeads = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                updateSidebarBadges();
+                if(isInitialLoad) { loadView('Dashboard', document.querySelector('.nav-header')); isInitialLoad = false; }
+                else { loadView(window.currentView); }
+            });
+
+            db.collection('payments').where('clientName', '==', clientData.name).onSnapshot(snap => {
+    myPayments = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    if (window.currentView === 'Payments_History' || window.currentView === 'Dashboard') loadView(window.currentView);
+});
+            
+            db.collection('crm_files').where('email', '==', currentUser.email).onSnapshot(snap => { 
+                myFiles = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+                if(window.currentView === 'FileManager') loadView('FileManager'); 
+            });
+
+            // Replaces Chat Listeners with Appointments
+            db.collection('appointments').where('clientEmail', '==', currentUser.email).onSnapshot(snap => {
+                myAppointments = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                updateBadge('b-appt', myAppointments.filter(a => a.status === 'Pending' || a.status === 'Approved').length);
+                if(window.currentView === 'Appointments' || window.currentView.startsWith('Proj_')) loadView(window.currentView);
+            });
+
+            db.collection('specialists').onSnapshot(snap => {
+                allSpecialists = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if(window.currentView.startsWith('Proj_') || window.currentView.startsWith('Req_') || window.currentView === 'Delivered') loadView(window.currentView);
+            });
+
+            db.collection('community').orderBy('createdAt', 'desc').onSnapshot(snap => {
+                if(!snap.empty) allPosts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if(window.currentView === 'Announcements' || window.currentView === 'Dashboard') loadView(window.currentView);
+            });
+        }
+
+        function updateSidebarBadges() {
+            updateBadge('b-req-pen', myLeads.filter(l => l.status === 'New Lead' && l.subStatus === 'Fresh Lead').length);
+            updateBadge('b-req-suc', myLeads.filter(l => l.status === 'New Lead' && l.subStatus === 'Successful').length);
+            updateBadge('b-req-tc', myLeads.filter(l => l.status === 'Technical Call').length);
+            updateBadge('b-req-rev', myLeads.filter(l => l.status === 'Follow Ups' || l.status === 'Negotiation').length);
+            updateBadge('b-req-app', myLeads.filter(l => l.status === 'Converted' && l.paymentStatus === 'Not Paid').length);
+            
+            updateBadge('b-proj-proc', myLeads.filter(l => ['Converted', 'Project Outlines', 'Project Processing'].includes(l.status)).length);
+            updateBadge('b-proj-rev', myLeads.filter(l => l.status === 'Project Changes/Review').length);
+            updateBadge('b-delivered', myLeads.filter(l => ['Project Completed', 'Project Successful'].includes(l.status)).length);
+            
+            updateBadge('b-pay-pen', myLeads.filter(l => (l.status === 'Follow Ups' || l.status === 'Negotiation' || l.status === 'Converted') && (l.paymentStatus === 'Not Paid' || l.paymentStatus === 'Partial')).length);
+        }
+
+        // --- 4. NAVIGATION ENGINE ---
+        function loadView(viewName, navEl = null) {
+            window.currentView = viewName;
+            if(navEl) {
+                document.querySelectorAll('.nav-item, .nav-header').forEach(n => n.classList.remove('active-link'));
+                if (navEl.classList.contains('nav-item') || navEl.classList.contains('nav-header')) { navEl.classList.add('active-link'); }
+                let parentGroup = navEl.closest('.nav-group'); if(parentGroup) parentGroup.classList.add('active');
+            }
+            const title = document.getElementById('current-page-label');
+
+            switch(viewName) {
+                case 'Dashboard': title.innerText = 'Dashboard'; renderDashboard(); break;
+                                case 'Community': title.innerText = 'Community'; renderCommunity(); break;
+                case 'Webinar': title.innerText = 'Webinars'; renderWebinar(); break;
+
+                case 'RequestServices': title.innerText = 'Research Services'; renderServices(); break;
+                case 'Req_Pending': title.innerText = 'Pending Requests'; renderRichProjects(myLeads.filter(l => l.status === 'New Lead' && l.subStatus === 'Fresh Lead'), 'Pending Processing', 'Requests waiting for review.'); break;
+                
+                case 'Req_Successful': title.innerText = 'Successful Requests'; renderRichProjects(myLeads.filter(l => l.status === 'New Lead' && l.subStatus === 'Successful'), 'Awaiting Technical Call Assignment', 'Admin has accepted your request.'); break;
+                case 'Req_TechCall': title.innerText = 'Technical Call'; renderRichProjects(myLeads.filter(l => l.status === 'Technical Call'), 'Technical Discovery Phase', 'Discussing details with technical team.'); break;
+                case 'Req_ReviewSamples': title.innerText = 'Review Samples'; renderRichProjects(myLeads.filter(l => l.status === 'Follow Ups' || l.status === 'Negotiation'), 'Payment Pending', 'Please pay in payments tab to proceed'); break;
+                case 'Req_Approved': title.innerText = 'Approved Final'; renderRichProjects(myLeads.filter(l => l.status === 'Converted' && l.paymentStatus === 'Not Paid'), 'Awaiting Financial Clearance', 'Project approved. Please clear dues.'); break;
+                case 'Proj_Processing': title.innerText = 'Processing'; renderRichProjects(myLeads.filter(l => ['Converted', 'Project Outlines', 'Project Processing'].includes(l.status)), 'Execution Phase', 'Projects actively being worked on.'); break;
+                case 'Proj_Revisions': title.innerText = 'Revisions'; renderRichProjects(myLeads.filter(l => l.status === 'Project Changes/Review'), 'Making Corrections', 'Projects sent back for revision.'); break;
+                case 'Delivered': title.innerText = 'Delivered & Closed'; renderRichProjects(myLeads.filter(l => ['Project Completed', 'Project Successful'].includes(l.status)), 'Finalized Deliveries', 'Completed projects ready for your review.'); break;
+                case 'Payments_Pending': title.innerText = 'Pending Payments'; renderPendingPayments(); break;
+                case 'Payments_History': title.innerText = 'Payment History'; renderFinancials(); break;
+                case 'Appointments': title.innerText = 'Appointments'; renderAppointments(); break;
+                case 'FileManager': title.innerText = 'Project Files'; renderFileManager(); break;
+                case 'Announcements': title.innerText = 'Announcements'; renderAnnouncements(); break;
+                case 'EarnWithUs': title.innerText = 'Earn with Us'; renderEarn(); break;
+                case 'SecureChat': title.innerText = 'Communication'; renderSecureChat(); break;
+                default: title.innerText = 'Dashboard'; renderDashboard(); break;
+            }
+        }
+
+        // --- 5. CORE RENDERERS ---
+
+                function renderDashboard() {
+            // --- 15-DAY AUTO-SUCCESS CHECKER ---
+            const now = Date.now();
+            const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000;
+            const reviewLeads = myLeads.filter(l => l.status === 'Project Completed');
+            reviewLeads.forEach(async (l) => {
+                const lastUpdate = l.updatedAt ? l.updatedAt.seconds * 1000 : now;
+                if ((now - lastUpdate) > fifteenDaysMs) {
+                    let history = l.pipelineHistory || []; 
+                    history.push({ status: 'Project Successful', time: new Date().toISOString(), remark: `SYSTEM: Moved to successful due to inactivity. Auto-Rated 4 Stars.` });
+                    await db.collection('leads').doc(l.id).update({ status: 'Project Successful', clientFeedbackRating: 4, pipelineHistory: history, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                }
+            });
+
+            const activeCount = myLeads.filter(l => ['Project Processing', 'Project Changes/Review', 'Project Outlines', 'Converted'].includes(l.status)).length;
+            const completedCount = myLeads.filter(l => ['Project Completed', 'Project Successful'].includes(l.status)).length;
+            
+            const pendingDues = myLeads.reduce((sum, l) => {
+                if((l.status === 'Follow Ups' || l.status === 'Negotiation' || l.status === 'Converted') && (l.paymentStatus === 'Not Paid' || l.paymentStatus === 'Partial')) {
+                    return sum + ((l.estimatedValue||0) - (l.advanceAmount||0));
+                } return sum;
+            }, 0);
+            const totalInvested = myPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+
+            const trackerProjs = myLeads.filter(l => !['Project Successful'].includes(l.status)).slice(0,4).map(l => `
+                <div style="padding:15px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; transition:0.3s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'" onclick="viewClientDossier('${l.id}')">
+                    <div>
+                        <strong style="color:white; font-size:1rem;">${l.Title || l.service}</strong><br>
+                        <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Phase: <span style="color:var(--primary-purple); font-weight:700;">${l.status}</span></span>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" style="padding:6px 12px;"><i class="fa-solid fa-route"></i> Track</button>
+                </div>
+            `).join('');
+
+            document.getElementById('app-canvas').innerHTML = `
+                <div class="page-header"><div><h2>Welcome, ${clientData.name.split(' ')[0]}</h2><p style="color:var(--text-muted)">Your unified project dashboard.</p></div></div>
+                
+                <div class="grid-stats" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="panel" style="margin:0; padding:20px; border-bottom: 3px solid var(--primary-purple); cursor:pointer;" onclick="loadView('Proj_Processing')">
+                        <div style="color:var(--text-muted); font-size:0.75rem; font-weight:700; text-transform:uppercase; margin-bottom:10px;">Active Projects</div>
+                        <div style="font-size:2rem; font-weight:800; color:white;">${activeCount}</div>
+                    </div>
+                    <div class="panel" style="margin:0; padding:20px; border-bottom: 3px solid var(--success); cursor:pointer;" onclick="loadView('Delivered')">
+                        <div style="color:var(--text-muted); font-size:0.75rem; font-weight:700; text-transform:uppercase; margin-bottom:10px;">Delivered Projects</div>
+                        <div style="font-size:2rem; font-weight:800; color:white;">${completedCount}</div>
+                    </div>
+                    <div class="panel" style="margin:0; padding:20px; border-bottom: 3px solid var(--warning); cursor:pointer;" onclick="loadView('Payments_Pending')">
+                        <div style="color:var(--text-muted); font-size:0.75rem; font-weight:700; text-transform:uppercase; margin-bottom:10px;">Outstanding Balance</div>
+                        <div style="font-size:2rem; font-weight:800; color:var(--warning);">₹${pendingDues.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div class="panel" style="margin:0; padding:20px; border-bottom: 3px solid var(--info); cursor:pointer;" onclick="loadView('Payments_History')">
+                        <div style="color:var(--text-muted); font-size:0.75rem; font-weight:700; text-transform:uppercase; margin-bottom:10px;">Total Investment</div>
+                        <div style="font-size:2rem; font-weight:800; color:white;">₹${totalInvested.toLocaleString('en-IN')}</div>
+                    </div>
+                </div>
+
+                <div class="qa-grid" style="margin-top:20px; cursor:pointer;">
+                    <div class="qa-card" onclick="loadView('RequestServices')"><i class="fa-solid fa-plus-circle"></i><span>New Project Request</span></div>
+                    <div class="qa-card" onclick="loadView('Payments_Pending')"><i class="fa-solid fa-money-check"></i><span>Make Payment</span></div>
+                    <div class="qa-card" onclick="loadView('Appointments')"><i class="fa-solid fa-calendar-check"></i><span>Schedule Meeting</span></div>
+                </div>
+
+                <div class="form-grid" style="grid-template-columns: 1fr 2fr;">
+                    <div class="panel" style="margin-top:15px;">
+                        <div class="panel-header"><h3>Project Status</h3></div>
+                        <div class="panel-body" style="height:350px; display:flex; justify-content:center;"><canvas id="dash-chart"></canvas></div>
+                    </div>
+                    <div class="panel" style="margin-top:15px;">
+                        <div class="panel-header"><h3>Project Progress Tracker</h3></div>
+                        <div class="panel-body" style="padding:0; overflow-y:auto; max-height:350px;">
+                            ${trackerProjs || '<div class="empty-state" style="padding:40px;"><i class="fa-solid fa-list-check" style="font-size:2rem;"></i><p>No active projects to track.</p></div>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Chart Initialization
+            if(dashChart) dashChart.destroy();
+            Chart.defaults.color = '#94a3b8'; Chart.defaults.font.family = 'Inter';
+            let requested = myLeads.filter(l => ['New Lead', 'Technical Call'].includes(l.status)).length;
+            let review = myLeads.filter(l => ['Follow Ups', 'Negotiation'].includes(l.status)).length;
+            const ctx = document.getElementById('dash-chart').getContext('2d');
+            dashChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: ['Requested', 'In Review', 'Active Work', 'Completed'], datasets: [{ data: [requested, review, activeCount, completedCount], backgroundColor: ['#a855f7', '#f59e0b', '#3b82f6', '#10b981'], borderWidth: 0, hoverOffset: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: '#fff', padding: 15 } } } }
+            });
+        }
+
+
+
+
+function renderServices() {
+            const services = [
+                { name: "Synopsis", icon: "fa-file-lines" }, { name: "Research Proposal", icon: "fa-bullseye" },
+                { name: "Thesis 80-120 Pages", icon: "fa-book" }, { name: "Thesis 180-220 Pages", icon: "fa-book-open" },
+                { name: "Standard Review Paper", icon: "fa-newspaper" }, { name: "Systematic Review Paper", icon: "fa-magnifying-glass-chart" },
+                { name: "Systematic Review With Meta", icon: "fa-chart-network" }, { name: "Bibliometric Review Paper", icon: "fa-chart-pie" },
+                { name: "SCOPUS Research Paper", icon: "fa-globe" }, { name: "Conference Paper", icon: "fa-users-rectangle" },
+                { name: "Proofreading Paper", icon: "fa-highlighter" }, { name: "Proofreading Thesis", icon: "fa-spell-check" },
+                { name: "Data Analysis", icon: "fa-chart-simple" }, { name: "Publication", icon: "fa-upload" }, { name: "Others", icon: "fa-layer-group" }
+            ];
+            document.getElementById('app-canvas').innerHTML = `
+                <div class="page-header"><div><h2>Research Services</h2><p style="color:var(--text-muted)">Select a service below to start.</p></div></div>
+                <div class="service-grid">
+                    ${services.map(s => `<div class="service-card" onclick="openServiceModal('${s.name}')"><i class="fa-solid ${s.icon} service-icon"></i><h3 style="color:white; margin-bottom:10px; font-size:1.1rem;">${s.name}</h3><button class="btn btn-secondary btn-sm" style="margin-top:10px; width:100%;">Select Service</button></div>`).join('')}
+                </div>
+            `;
+        }
+
+
+        function openServiceModal(serviceName) {
+            showModal(`Request: ${serviceName}`, `
+                <div class="form-grid">
+                    <div class="form-group full"><label>Final Project Title</label><input type="text" id="rs-title" class="form-control" placeholder="E.g. The impact of AI on Healthcare..."></div>
+                    <div class="form-group"><label>Academic Domain</label><input type="text" id="rs-domain" class="form-control" placeholder="E.g. Computer Science"></div>
+                    <div class="form-group"><label>Course Level</label><input type="text" id="rs-course" class="form-control" placeholder="E.g. PhD, Masters, Bachelors"></div>
+                    <div class="form-group full"><label>Target Deadline</label><input type="date" id="rs-dod" class="form-control"></div>
+                    <div class="form-group full"><label>Detailed Instructions or Requirements *</label><textarea id="rs-desc" class="form-control" style="min-height:120px;" placeholder="Please provide your word count, formatting styles, and specific objectives..." required></textarea></div>
+                </div>
+            `, `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="submitServiceRequest('${serviceName}')"><i class="fa-solid fa-paper-plane"></i> Submit Request</button>`);
+            document.getElementById('modal-card-inner').className = 'modal-card md';
+        }
+
+                async function submitServiceRequest(serviceName) {
+            const title = document.getElementById('rs-title').value;
+            const desc = document.getElementById('rs-desc').value.trim();
+            if(!desc) return showToast("Instructions are required.", "error");
+
+            // Inherit the assigned Sales Rep from previous projects, or fallback to default
+            let execEmail = "sales@rc.org"; // Replace with your main sales email if testing new accounts
+            let execName = "Sales Admin";
+            if (myLeads && myLeads.length > 0) { 
+                const assignedLead = myLeads.find(l => l.executiveEmail); 
+                if (assignedLead) { 
+                    execEmail = assignedLead.executiveEmail; 
+                    execName = assignedLead.executiveName || "Account Manager"; 
+                } 
+            }
+
+            // Exactly matching the Sales Portal "Add Lead" payload
+            const data = {
+                clientName: clientData.name, 
+                email: currentUser.email, 
+                phone: clientData.phone || 'Client Portal',
+                Title: title, 
+                service: serviceName, 
+                domain: document.getElementById('rs-domain').value, 
+                course: document.getElementById('rs-course').value, 
+                dod: document.getElementById('rs-dod').value, 
+                description: desc, 
+                source: 'Client Portal', 
+                platform: 'Research Connect', 
+                priority: 'Warm', // Standard fresh lead priority
+                
+                // --- THE FIX: Now sends it exactly like a normal fresh lead ---
+                status: 'New Lead', 
+                subStatus: 'Fresh Lead', 
+                
+                paymentStatus: 'Not Paid', 
+                estimatedValue: 0, 
+                outlineStatus: 'Not Created', 
+                isDeleted: false,
+                executiveEmail: execEmail, 
+                executiveName: execName,   
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                pipelineHistory: [{ status: 'New Lead', time: new Date().toISOString(), remark: `Project requested via Portal (${serviceName}).` }]
+            };
+
+            const btn = document.querySelector('#modal-footer .btn-primary');
+            if(btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...'; }
+
+            try {
+                await db.collection('leads').add(data);
+                showToast("Service Requested Successfully!"); 
+                closeModal(); 
+                
+                // Redirect Client to the "Pending" tab instead of Successful
+                const navEl = Array.from(document.querySelectorAll('.nav-item')).find(el => el.innerText.includes('Pending'));
+                if(navEl) loadView('Req_Pending', navEl);
+            } catch(e) {
+                showToast("Error processing request.", "error");
+                if(btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Request'; }
+            }
+        }
+
+
+        // --- MASTER RICH PROJECT CARD RENDERER ---
+        function renderRichProjects(list, titleText, descText) {
+            list = filterAndSortLeads(list);
+            
+            let html = `<div class="page-header"><div><h2>${titleText}</h2><p style="color:var(--text-muted)">${descText}</p></div></div>${getFilterBarHTML()}`;
+            
+            if(list.length === 0) {
+                html += `<div class="empty-state"><i class="fa-solid fa-folder-open"></i><h3>No Projects Here</h3><p>You don't have any projects in this phase.</p></div>`;
+                document.getElementById('app-canvas').innerHTML = html;
+                setTimeout(() => initCustomSelects(), 50);
+                return;
+            }
+
+            let cardsHtml = list.map(l => {
+                const estVal = l.estimatedValue || 0; const adv = l.advanceAmount || 0; const pending = estVal - adv;
+                
+                let latestRemark = "Awaiting update.";
+                if(l.pipelineHistory && l.pipelineHistory.length > 0) {
+                    const validRemarks = l.pipelineHistory.filter(h => h.remark).sort((a,b) => new Date(b.time) - new Date(a.time));
+                    if(validRemarks.length > 0) latestRemark = validRemarks[0].remark;
+                }
+
+                let badgeClass = 'bg-purple';
+                if(l.status.includes('Completed') || l.status.includes('Successful')) badgeClass = 'bg-success';
+                if(l.status === 'Project Changes/Review') badgeClass = 'bg-danger';
+
+                // Display logic for Specialist Info
+                let writerName = "Not Assigned";
+                if(l.status.includes('Project') || l.status === 'Converted') writerName = "Technical Team";
+                if(l.techSpecialistId) {
+                    let spec = allSpecialists.find(s => s.specId === l.techSpecialistId);
+                    if(spec) writerName = `${spec.name} <span style="color:var(--warning); font-size:0.75rem; margin-left:4px;"><i class="fa-solid fa-star"></i> 4.8</span>`; // Showing name and mock score 
+                    else writerName = `Specialist [${l.techSpecialistId}]`;
+                }
+
+                let actionHtml = `<button class="btn btn-secondary btn-sm" onclick="viewClientDossier('${l.id}')"><i class="fa-solid fa-route"></i> Details & Timeline</button>`;
+                
+                if(['Converted', 'Project Outlines', 'Project Processing', 'Project Changes/Review'].includes(l.status)) {
+                    // Chat is removed, pointing to Appointments
+                    actionHtml += `<button class="btn btn-primary btn-sm" onclick="loadView('Appointments')"><i class="fa-solid fa-calendar-check"></i> Book Appointment</button>`;
+                }
+                
+                if(l.status === 'Project Outlines' && l.outlineStatus === 'Sent') {
+                    actionHtml += `<button class="btn btn-sm" style="background:var(--danger); color:#fff;" onclick="requestOutlineChanges('${l.id}')">Request Outline Fix</button>
+                                   <button class="btn btn-sm" style="background:var(--success); color:#fff;" onclick="approveOutline('${l.id}', 'Approved')"><i class="fa-solid fa-check"></i> Approve Outline</button>`;
+                }
+                
+                if(l.status === 'Project Completed') {
+                    actionHtml += `<button class="btn btn-primary btn-sm" style="background:var(--success); color:#fff;" onclick="openReviewModal('${l.id}')"><i class="fa-solid fa-star"></i> Review & Mark Done</button>`;
+                }
+
+                // Check for Scheduled Appointments
+                let projAppt = myAppointments.find(a => a.leadId === l.id && a.status === 'Approved');
+                let apptBlock = projAppt ? `<div class="rlc-item"><span>Next Meeting</span><strong style="color:var(--info)"><i class="fa-regular fa-calendar-check"></i> ${projAppt.date} | ${projAppt.timeSlot}</strong></div>` : '';
+
+                let trackingHtml = '';
+                if(['Converted', 'Project Outlines', 'Project Processing'].includes(l.status)) {
+                    trackingHtml = `<div style="margin-top:15px;"><span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Writer Phase: <b style="color:var(--primary-purple)">${l.writerPhase || 'Setting Up Workspace'}</b></span><div class="tracking-bar"></div></div>`;
+                }
+
+                return `
+                <div class="rich-lead-card">
+                    <div class="rlc-header">
+                        <div>
+                            <div class="rlc-title">${l.Title || l.service}</div>
+                            <div class="rlc-service"><i class="fa-solid fa-layer-group" style="margin-right:5px;"></i> ${l.service}</div>
+                        </div>
+                        <span class="badge ${badgeClass}">${l.status === 'New Lead' ? 'Pending Tech Call' : l.status}</span>
+                    </div>
+                    <div class="rlc-grid">
+                        <div class="rlc-item"><span>Domain</span><strong>${l.domain || 'TBD'}</strong></div>
+                        <div class="rlc-item"><span>Deadline</span><strong style="color:var(--danger)">${l.dod || 'TBD'}</strong></div>
+                        <div class="rlc-item"><span>Writer</span><strong>${writerName}</strong></div>
+                        ${apptBlock}
+                    </div>
+                    <div class="rlc-grid" style="border-top:1px dashed var(--border); padding-top:15px; margin-bottom:0;">
+                        <div class="rlc-item"><span>Total Value</span><strong style="color:white">₹${estVal.toLocaleString()}</strong></div>
+                        <div class="rlc-item"><span>Amount Paid</span><strong style="color:var(--success)">₹${adv.toLocaleString()}</strong></div>
+                        <div class="rlc-item"><span>Pending Dues</span><strong style="color:var(--warning)">₹${pending.toLocaleString()}</strong></div>
+                        <div class="rlc-item" style="justify-content:flex-end; align-items:flex-end;">
+                            <div style="display:flex; gap:8px;">${actionHtml}</div>
+                        </div>
+                    </div>
+                    ${trackingHtml}
+                    <div class="rlc-footer" style="margin-top:15px;">
+                        <span style="font-size:0.8rem; color:var(--text-muted);"><i class="fa-solid fa-comment-dots" style="margin-right:5px; color:var(--primary-purple);"></i> ${latestRemark}</span>
+                        <span style="font-size:0.75rem; color:var(--text-muted);"><i class="fa-regular fa-clock"></i> ${timeAgo(l.updatedAt || l.createdAt)}</span>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            document.getElementById('app-canvas').innerHTML = html + `<div>${cardsHtml}</div>`;
+            setTimeout(() => initCustomSelects(), 50);
+        }
+
+        // --- APPOINTMENT ENGINE (Replaces Chat) ---
+        function renderAppointments() {
+            let html = `
+                <div class="page-header">
+                    <div><h2>Meeting Appointments</h2><p style="color:var(--text-muted)">Schedule and manage calls with your technical specialist.</p></div>
+                    <button class="btn btn-primary" onclick="openAppointmentModal()"><i class="fa-solid fa-calendar-plus"></i> Schedule Meeting</button>
+                </div>
+            `;
+            
+            let sortedAppts = myAppointments.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            if(sortedAppts.length === 0) {
+                html += `<div class="empty-state"><i class="fa-regular fa-calendar"></i><h3>No Appointments</h3><p>You haven't scheduled any meetings yet.</p></div>`;
+            } else {
+                html += `
+                <div class="panel"><div class="panel-body" style="padding:0;">
+                    <table class="data-table">
+                        <thead><tr><th>Project & Type</th><th>Date & Time</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody>${sortedAppts.map(a => {
+                            let badgeClass = a.status==='Approved'?'bg-success':(a.status==='Rejected'?'bg-danger':'bg-warning');
+                            let actions = '';
+                            if(a.status === 'Approved' && a.meetingLink) actions = `<a href="${a.meetingLink}" target="_blank" class="btn btn-primary btn-sm"><i class="fa-solid fa-video"></i> Join Link</a>`;
+                            if(a.status === 'Rejected') actions = `<button class="btn btn-secondary btn-sm" onclick="showToast('Reason: ${a.rejectReason || 'No reason provided.'}', 'error')"><i class="fa-solid fa-circle-info"></i> View Reason</button>`;
+                            
+                            return `
+                            <tr class="data-row">
+                                <td><strong style="color:white">${a.projectTitle || 'General'}</strong><br><span style="font-size:0.8rem; color:var(--info);"><i class="fa-solid ${a.type==='Concall'?'fa-phone':'fa-video'}"></i> ${a.type}</span></td>
+                                <td><span style="color:white;">${a.date}</span><br><span style="font-size:0.8rem; color:var(--text-muted);">${a.timeSlot}</span></td>
+                                <td><span class="badge ${badgeClass}">${a.status}</span></td>
+                                <td><div style="display:flex; gap:8px;">${actions}</div></td>
+                            </tr>
+                            `;
+                        }).join('')}</tbody>
+                    </table>
+                </div></div>
+                `;
+            }
+            document.getElementById('app-canvas').innerHTML = html;
+        }
+
+        function openAppointmentModal() {
+            let eligibleProjs = myLeads.filter(l => ['Converted', 'Project Outlines', 'Project Processing', 'Project Changes/Review'].includes(l.status));
+            let projOpts = `<option value="">-- Select Active Project --</option>` + eligibleProjs.map(l => `<option value="${l.id}">${l.Title || l.service}</option>`).join('');
+
+            let tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            let minDate = tomorrow.toISOString().split('T')[0];
+
+            showModal('Schedule Appointment', `
+                <div class="form-grid">
+                    <div class="form-group full"><label>Project Context *</label><select id="appt-lead" class="form-control">${projOpts}</select></div>
+                    <div class="form-group full"><label>Meeting Type *</label><select id="appt-type" class="form-control"><option value="Google Meet">Google Meet</option><option value="Concall">Conference Call</option></select></div>
+                    
+                    <div class="form-group full" style="border-top:1px dashed var(--border); padding-top:15px;">
+                        <label>Select Date (Starts Tomorrow) *</label>
+                        <input type="date" id="appt-date" class="form-control" min="${minDate}" onchange="renderTimeSlots(this.value)">
+                    </div>
+                    
+                    <div class="form-group full">
+                        <label>Select Available Time Slot *</label>
+                        <div id="time-slot-container"><span style="font-size:0.85rem; color:var(--text-muted);">Please select a date first.</span></div>
+                    </div>
+
+                    <div class="form-group full" style="border-top:1px dashed var(--border); padding-top:15px;">
+                        <label>Brief Details / Agenda *</label>
+                        <textarea id="appt-details" class="form-control" style="min-height:80px;" placeholder="What do you want to discuss?"></textarea>
+                    </div>
+                    
+                    <div class="form-group full">
+                        <label>Upload Reference Files (Optional)</label>
+                        <input type="file" id="appt-files" class="form-control" multiple style="padding:10px;">
+                    </div>
+                </div>
+            `, `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="submitAppointment()"><i class="fa-solid fa-calendar-check"></i> Schedule Meeting</button>`);
+            document.getElementById('modal-card-inner').className = 'modal-card md';
+            setTimeout(() => initCustomSelects(), 50);
+        }
+
+        function renderTimeSlots(dateStr) {
+            if(!dateStr) return;
+            const slots = ['09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'];
+            
+            const apptsOnDate = myAppointments.filter(a => a.date === dateStr);
+            if(apptsOnDate.length >= 2) {
+                document.getElementById('time-slot-container').innerHTML = `<div style="color:var(--danger); font-size:0.85rem; padding:10px; background:rgba(239,68,68,0.1); border-radius:8px;">You have reached the maximum of 2 appointments for this day. Please select another date.</div>`;
+                window.selectedTimeSlot = '';
+                return;
+            }
+
+            const bookedSlots = apptsOnDate.map(a => a.timeSlot);
+            
+            let html = '<div class="slot-grid">';
+            slots.forEach(slot => {
+                const isBooked = bookedSlots.includes(slot);
+                const classNames = isBooked ? 'slot-btn disabled' : 'slot-btn';
+                html += `<div class="${classNames}" onclick="${isBooked ? '' : `selectTimeSlot('${slot}', this)`}">${slot}</div>`;
+            });
+            html += '</div>';
+            document.getElementById('time-slot-container').innerHTML = html;
+            window.selectedTimeSlot = ''; // reset selection
+        }
+
+        function selectTimeSlot(slot, el) {
+            window.selectedTimeSlot = slot;
+            document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        async function submitAppointment() {
+            const leadId = document.getElementById('appt-lead').value;
+            const type = document.getElementById('appt-type').value;
+            const date = document.getElementById('appt-date').value;
+            const details = document.getElementById('appt-details').value.trim();
+            const fileInput = document.getElementById('appt-files');
+            
+            if(!leadId || !date || !window.selectedTimeSlot || !details) {
+                return showToast("Please fill all required fields and select a time slot.", "error");
+            }
+
+            const lead = myLeads.find(l => l.id === leadId);
+            
+            let attachments = [];
+            if(fileInput && fileInput.files.length > 0) {
+                for(let i=0; i<fileInput.files.length; i++) {
+                    attachments.push({ name: fileInput.files[i].name, category: 'Appointment Brief' }); // Mocked upload
+                }
+            }
+
+            const data = {
+                leadId: leadId,
+                projectTitle: lead.Title || lead.service,
+                clientName: clientData.name,
+                clientEmail: currentUser.email,
+                executiveEmail:"sales@rc.org",
+                type: type,
+                date: date,
+                timeSlot: window.selectedTimeSlot,
+                details: details,
+                attachments: attachments,
+                status: 'Pending',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            await db.collection('appointments').add(data);
+            showToast("Appointment requested successfully!");
+            closeModal();
+        }
+
+        async function approveOutline(leadId, status) {
+            let history = myLeads.find(x => x.id === leadId).pipelineHistory || [];
+            history.push({ status: `Outline ${status}`, time: new Date().toISOString(), remark: `Client marked outline as ${status}.` });
+            let payload = { outlineStatus: status, pipelineHistory: history, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+            if(status === 'Approved') payload.status = 'Project Processing';
+            await db.collection('leads').doc(leadId).update(payload);
+            showToast(`Outline Approved!`); loadView('Proj_Processing');
+        }
+
+        function requestOutlineChanges(leadId) {
+            showConfirm("Request Outline Changes", "Please specify what needs to be changed in the outline.", async (remark) => {
+                let history = myLeads.find(x => x.id === leadId).pipelineHistory || [];
+                history.push({ status: `Outline Changes Requested`, time: new Date().toISOString(), remark: `Client requested changes: ${remark}` });
+                await db.collection('leads').doc(leadId).update({ outlineStatus: 'Changes Requested', pipelineHistory: history, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                showToast("Outline change request sent."); loadView(window.currentView);
+            }, true);
+        }
+
+        // --- PENDING PAYMENTS SCREEN ---
+        function renderPendingPayments() {
+            let list = filterAndSortLeads(myLeads.filter(l => (l.status === 'Follow Ups' || l.status === 'Negotiation' || l.status === 'Converted') && (l.paymentStatus === 'Not Paid' || l.paymentStatus === 'Partial')));
+            
+            let html = `<div class="page-header"><div><h2>Pending Payments</h2><p style="color:var(--text-muted)">Clear your dues to proceed with project execution.</p></div></div>`;
+            
+            if(list.length === 0) {
+                html += `<div class="empty-state"><i class="fa-solid fa-money-check"></i><h3>No Pending Payments</h3><p>You are all caught up.</p></div>`;
+                document.getElementById('app-canvas').innerHTML = html; return;
+            }
+
+            html += `
+            <div class="payment-info-box">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=researchcraft@upi" alt="UPI QR Code">
+                <div class="payment-info-details">
+                    <h3 style="color: white; margin-bottom: 10px; font-size:1.2rem;"><i class="fa-solid fa-building-columns"></i> Official Payment Details</h3>
+                    <div class="form-grid" style="gap:10px;">
+                        <div><p style="color: var(--text-muted); font-size:0.8rem; margin:0;">Bank Name</p><strong style="color:white;">Research Connect</strong></div>
+                        <div><p style="color: var(--text-muted); font-size:0.8rem; margin:0;">Account Name</p><strong style="color:white;">Research Connect Pvt Ltd</strong></div>
+                        <div><p style="color: var(--text-muted); font-size:0.8rem; margin:0;">Account No.</p><strong style="color:white; font-family:monospace;">12345678901234</strong></div>
+                        <div><p style="color: var(--text-muted); font-size:0.8rem; margin:0;">IFSC Code</p><strong style="color:white; font-family:monospace;">ENTB0001234</strong></div>
+                        <div class="full"><p style="color: var(--text-muted); font-size:0.8rem; margin:0;">UPI ID</p><strong style="color:var(--primary-purple); font-family:monospace;">researchcraft@upi</strong></div>
+                    </div>
+                </div>
+            </div>
+            `;
+
+            let cardsHtml = list.map(l => {
+                const estVal = l.estimatedValue || 0; const adv = l.advanceAmount || 0; const pending = estVal - adv;
+                
+                let buttonHtml = `<button class="btn btn-primary" style="background:var(--success); color:white; width:100%;" onclick="confirmPaymentModal('${l.id}')"><i class="fa-solid fa-check-double"></i> I Have Paid This</button>`;
+                if (l.paymentClaimedAt) {
+                    const minsPassed = (Date.now() - l.paymentClaimedAt) / 60000;
+                    if (minsPassed < 30) {
+                        buttonHtml = `<button class="btn btn-secondary" style="width:100%; cursor:not-allowed; border-color:var(--warning); color:var(--warning);" disabled><i class="fa-solid fa-hourglass-half fa-spin"></i> Verification in Progress...</button>`;
+                    } else {
+                        buttonHtml = `<div style="width:100%; text-align:center;"><span style="color:var(--danger); font-size:0.75rem; display:block; margin-bottom:8px;">Sorry, we have not received the payment.</span><button class="btn btn-primary" style="background:var(--danger); color:white; width:100%;" onclick="confirmPaymentModal('${l.id}')"><i class="fa-solid fa-rotate-right"></i> Try Again / Re-verify</button></div>`;
+                    }
+                }
+
+                return `
+                <div class="rich-lead-card" style="border-color:var(--warning);">
+                    <div class="rlc-header">
+                        <div><div class="rlc-title">${l.Title || l.service}</div></div>
+                        <span class="badge bg-warning">Awaiting Payment</span>
+                    </div>
+                    <div class="rlc-grid" style="margin-bottom:0;">
+                        <div class="rlc-item"><span>Total Value</span><strong style="color:white">₹${estVal.toLocaleString()}</strong></div>
+                        <div class="rlc-item"><span>Amount Paid</span><strong style="color:var(--success)">₹${adv.toLocaleString()}</strong></div>
+                        <div class="rlc-item"><span>Pending Dues</span><strong style="color:var(--danger); font-size:1.2rem;">₹${pending.toLocaleString()}</strong></div>
+                        <div class="rlc-item" style="justify-content:center; align-items:flex-end;">${buttonHtml}</div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            document.getElementById('app-canvas').innerHTML = html + `<div>${cardsHtml}</div>`;
+        }
+
+        function confirmPaymentModal(id) {
+            const lead = myLeads.find(l => l.id === id);
+            showConfirm("Confirm Payment Transfer", `Confirm payment transfer for <strong>${lead.Title || lead.service}</strong>?`, async (remark) => {
+                let history = lead.pipelineHistory || [];
+                history.push({ status: 'Client Claimed Payment', time: new Date().toISOString(), remark: `Client Note: ${remark}` });
+                await db.collection('leads').doc(id).update({ paymentClaimedAt: Date.now(), pipelineHistory: history, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                showToast("Payment confirmation sent. We will verify and update."); loadView(window.currentView);
+            }, true);
+        }
+
+        // --- DOSSIER (TRACKING) ---
+               function viewClientDossier(id) {
+            const lead = myLeads.find(x => x.id === id);
+            
+            // Smart Messages Engine
+            let progressMsg = "Initializing workspace and assigning technical team.";
+            let nextUpdate = "Awaiting tech setup.";
+            let outlineStat = lead.outlineStatus || 'Not Created';
+            
+            if(lead.status === 'Technical Call') { progressMsg = "Technical call scheduled. Preparing framework."; nextUpdate = lead.callTiming ? `Call on ${new Date(lead.callTiming).toLocaleDateString()}` : "Pending scheduling."; }
+            if(lead.status === 'Project Outlines') { 
+                if(outlineStat === 'Sent') { progressMsg = "Outline sent for your review."; nextUpdate = "Awaiting your approval."; }
+                else if(outlineStat === 'Approved') { progressMsg = "Your outline has been approved. Writer is compiling data."; nextUpdate = "Moving to drafting phase."; }
+                else { progressMsg = "Outline is being drafted by the technical head."; nextUpdate = "Within 48 hours."; }
+            }
+            if(lead.status === 'Project Processing') { progressMsg = "Writer is actively working on the project."; nextUpdate = "Submission will be delivered before " + (lead.dod || 'deadline'); }
+            if(lead.status === 'Project Changes/Review') { progressMsg = "Revision in progress. Addressing your requested changes."; nextUpdate = "Within 48 hours."; }
+            if(lead.status.includes('Completed') || lead.status.includes('Successful')) { progressMsg = "Project Completed. Files are available in File Manager."; nextUpdate = "None (Project Closed)"; }
+
+            // Get Exec Names
+            let salesExec = lead.executiveName || "Support Team";
+            let techHead = "Assigning...";
+            if(lead.techSpecialistId) {
+                let spec = allSpecialists.find(s => s.specId === lead.techSpecialistId);
+                if(spec) techHead = spec.name; else techHead = `Specialist [${lead.techSpecialistId}]`;
+            }
+
+                        // --- STRICT CLIENT TIMELINE FILTER ---
+            // Whitelist of words the client is allowed to see
+            const publicKeywords = ['New Lead', 'Technical Call', 'Payment', 'Converted', 'Outline', 'Phase Updated', 'FINAL DELIVERY', 'Client', 'Project Completed', 'Project Successful', 'Quotation'];
+            // Blacklist of internal notes to hide from the client
+            const internalKeywords = ['SYSTEM:', 'Sales Executive', 'Admin Note:', 'Specialist notes:', 'Tech Call Initiated', 'Tech Details Updated'];
+
+            const filteredHistory = (lead.pipelineHistory || []).filter(h => {
+                const combinedText = (h.status + " " + (h.remark || "")).toLowerCase();
+                
+                // 1. Hide strictly internal stuff
+                for(let word of internalKeywords) {
+                    if (combinedText.includes(word.toLowerCase())) return false;
+                }
+                
+                // 2. Show if it matches public allowed keywords
+                for(let word of publicKeywords) {
+                    if (combinedText.includes(word.toLowerCase())) return true;
+                }
+                
+                return false; // Hide anything else by default
+            });
+
+            const historyHtml = filteredHistory.map(h => `
+                <div class="timeline-item">
+                    <div class="timeline-date">${timeAgo(h.time)} <span style="font-weight:normal; font-size:0.7rem; color:var(--text-muted); margin-left:5px;">${new Date(h.time).toLocaleTimeString()}</span></div>
+                    <div class="timeline-content" style="color:white; font-size:0.9rem;">${h.status}</div>
+                    ${h.remark ? `<div class="timeline-remark" style="color:var(--text-muted); font-size:0.8rem; margin-top:4px;">${h.remark.replace('Tech Specialist note:', 'Update:')}</div>` : ''}
+                </div>
+            `).reverse().join('');
+
+
+            const html = `
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:25px;">
+                    <div style="display:flex; flex-direction:column; gap:20px;">
+                        
+                        <div class="panel" style="margin:0; box-shadow:none; border-color:var(--primary-purple); background:rgba(168,85,247,0.05);">
+                            <div class="panel-body" style="padding:25px;">
+                                <h3 style="font-size:1.4rem; color:white; margin-bottom:5px; line-height:1.4;">${lead.Title || lead.service}</h3>
+                                <span style="color:var(--primary-purple); font-weight:700; text-transform:uppercase; font-size:0.8rem;">${lead.service}</span>
+                                
+                                <div style="margin-top:20px; padding:15px; background:rgba(0,0,0,0.5); border-radius:8px; border:1px solid var(--border);">
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--text-muted); font-size:0.85rem;">Outline Status</span><strong style="color:${outlineStat==='Approved'?'var(--success)':'var(--warning)'};">${outlineStat}</strong></div>
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--text-muted); font-size:0.85rem;">Work Progress</span><strong style="color:white; text-align:right; max-width:60%;">${progressMsg}</strong></div>
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--text-muted); font-size:0.85rem;">Next Update</span><strong style="color:var(--info);">${nextUpdate}</strong></div>
+                                    <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted); font-size:0.85rem;">Final Delivery (DOD)</span><strong style="color:var(--danger);">${lead.dod || 'TBD'}</strong></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel" style="margin:0; box-shadow:none;">
+                            <div class="panel-header" style="padding:15px 20px;"><h3 style="font-size:1rem; color:var(--text-main);"><i class="fa-solid fa-users"></i> Project Team</h3></div>
+                            <div class="panel-body" style="padding:20px; display:grid; grid-template-columns:1fr; gap:15px;">
+                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:10px;"><span style="color:var(--text-muted); font-size:0.85rem;">Technical Head</span><strong style="color:white;">${techHead}</strong></div>
+                                <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:10px;"><span style="color:var(--text-muted); font-size:0.85rem;">Operations Manager</span><strong style="color:white;">System Admin</strong></div>
+                                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted); font-size:0.85rem;">Sales Executive</span><strong style="color:white;">${salesExec}</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel" style="margin:0; box-shadow:none; display:flex; flex-direction:column;">
+                        <div class="panel-header" style="padding:15px 20px;"><h3 style="font-size:1rem; color:var(--text-main);"><i class="fa-solid fa-route"></i> Timeline Logs</h3></div>
+                        <div class="panel-body" style="padding:20px; overflow-y:auto; max-height:450px;">
+                            <div class="timeline">${historyHtml || '<div style="color:var(--text-muted);">No journey data yet.</div>'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            showModal(`Project Progress Tracker`, html, `<button class="btn btn-primary" onclick="closeModal()">Close Tracker</button>`);
+            document.getElementById('modal-card-inner').className = 'modal-card lg';
+        }
+
+        // --- REVIEWS & REVISIONS ---
+        function openReviewModal(id) {
+            const lead = myLeads.find(x => x.id === id); const revRemaining = 2 - (lead.revisionCount || 0);
+            const html = `
+                <div class="form-grid">
+                    <div class="panel" style="margin:0; grid-column: span 2; background: rgba(168,85,247,0.05); border-color:var(--primary-purple);">
+                        <div class="panel-body" style="text-align:center;">
+                            <h3 style="color:white; margin-bottom:10px;">Accept Delivery & Mark Done</h3>
+                            <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:20px;">If the work meets your expectations, please rate it to finalize the project.</p>
+                            <div style="display:flex; justify-content:center; gap:10px; font-size:2rem;  color:var(--border);" id="star-rating"><i class="fa-solid fa-star star-btn" data-val="1"></i><i class="fa-solid fa-star star-btn" data-val="2"></i><i class="fa-solid fa-star star-btn" data-val="3"></i><i class="fa-solid fa-star star-btn" data-val="4"></i><i class="fa-solid fa-star star-btn" data-val="5"></i></div>
+                            <input type="hidden" id="cr-rating" value="0">
+                            <button class="btn btn-primary" style="margin-top:20px;" onclick="submitRating('${id}')"><i class="fa-solid fa-check-double"></i> Mark Project Done</button>
+                        </div>
+                    </div>
+                    <div class="form-group full" style="margin-top:20px; border-top:1px solid var(--border); padding-top:20px;">
+                        <h4 style="color:var(--danger); margin-bottom:10px;"><i class="fa-solid fa-rotate-left"></i> Request Revision (${revRemaining} Remaining)</h4>
+                        ${revRemaining > 0 ? `<textarea id="cr-rev-desc" class="form-control" placeholder="Describe the specific changes required..." style="min-height:80px; margin-bottom:10px;"></textarea><label>Upload Reference File (Optional)</label><input type="file" id="cr-rev-file" class="form-control" style="padding:10px; margin-bottom:10px;"><button class="btn btn-danger" onclick="submitRevision('${id}', ${lead.revisionCount||0})"><i class="fa-solid fa-paper-plane"></i> Send to Writer</button>` : `<div style="color:var(--danger); padding:10px; background:rgba(239,68,68,0.1); border-radius:8px;">You have exhausted your 2 free revisions.</div>`}
+                    </div>
+                </div>
+            `;
+            showModal('Review & Revisions', html, `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>`);
+            document.getElementById('modal-card-inner').className = 'modal-card md';
+            setTimeout(() => { document.querySelectorAll('.star-btn').forEach(s => { s.onclick = () => { const val = parseInt(s.dataset.val); document.getElementById('cr-rating').value = val; document.querySelectorAll('.star-btn').forEach((st, idx) => { if(idx < val) { st.style.color = '#eab308'; st.style.textShadow = '0 0 15px rgba(234,179,8,0.4)'; } else { st.style.color = 'var(--border)'; st.style.textShadow = 'none'; } }); }; }); }, 50);
+        }
+
+        async function submitRating(id) {
+            const r = parseInt(document.getElementById('cr-rating').value); if(r === 0) return showToast("Please select a star rating.", "error");
+            let history = myLeads.find(x => x.id === id).pipelineHistory || []; history.push({ status: 'Project Successful', time: new Date().toISOString(), remark: `Client Rated: ${r} Stars. Project Marked Done.` });
+            await db.collection('leads').doc(id).update({ status: 'Project Successful', clientFeedbackRating: r, pipelineHistory: history, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            showToast("Thank you for your feedback! Project Closed."); closeModal(); loadView('Delivered');
+        }
+
+        async function submitRevision(id, currentCount) {
+            const desc = document.getElementById('cr-rev-desc').value.trim(); const fileInput = document.getElementById('cr-rev-file');
+            if(!desc) return showToast("Please describe what's wrong.", "error");
+            let lead = myLeads.find(x => x.id === id); let atts = lead.attachments || []; let history = lead.pipelineHistory || [];
+            if(fileInput && fileInput.files.length > 0) { atts.push({ name: fileInput.files[0].name, url: '#', category: 'Client Revision File' }); } 
+            history.push({ status: 'Project Changes/Review', time: new Date().toISOString(), remark: `Client requested revision (${currentCount+1}/2): ${desc}` });
+            await db.collection('leads').doc(id).update({ status: 'Project Changes/Review', revisionCount: currentCount + 1, changeRequestDetails: desc, attachments: atts, pipelineHistory: history, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            showToast("Revision sent to specialist."); closeModal(); loadView('Proj_Revisions');
+        }
+
+        // --- FILE MANAGER ---
+                
+        // --- CATEGORIZED FILE MANAGER ---
+        function renderFileManager() {
+            let q = document.getElementById('global-search').value.toLowerCase();
+            let filteredLeads = myLeads.filter(l => l.attachments && l.attachments.length > 0);
+            if(q) filteredLeads = filteredLeads.filter(l => l.clientName.toLowerCase().includes(q) || (l.Title||'').toLowerCase().includes(q));
+
+            let html = `<div class="page-header"><div><h2>File Manager</h2><p style="color:var(--text-muted)">All your project files organized by category.</p></div></div>`;
+
+            if(filteredLeads.length === 0) {
+                html += `<div class="empty-state"><i class="fa-solid fa-folder-open"></i><h3>Vault is Empty</h3><p>Files will appear here once uploaded by your team.</p></div>`;
+            } else {
+                html += `<div style="display:flex; flex-direction:column; gap:20px;">`;
+                
+                filteredLeads.forEach(lead => {
+                    const projName = lead.Title ? lead.Title.substring(0, 40) + (lead.Title.length>40?'...':'') : lead.service;
+                    
+                    let cats = {};
+                    lead.attachments.forEach(a => { let catName = a.category || 'General'; if(!cats[catName]) cats[catName] = []; cats[catName].push(a); });
+
+                    let catHtml = Object.keys(cats).map(c => `
+                        <div style="margin-bottom:15px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px; padding:15px;">
+                            <strong style="color:var(--primary-purple); font-size:0.8rem; text-transform:uppercase; display:block; margin-bottom:10px; border-bottom:1px solid rgba(168, 85, 247, 0.2); padding-bottom:6px;"><i class="fa-solid fa-layer-group"></i> ${c} (${cats[c].length} Files)</strong>
+                            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:10px;">
+                                ${cats[c].map(file => {
+                                    let icon = 'fa-file-lines'; let iconColor = 'var(--text-muted)';
+                                    if(file.name.toLowerCase().endsWith('.pdf')) { icon = 'fa-file-pdf'; iconColor = '#ef4444'; } 
+                                    else if(file.name.toLowerCase().match(/\.(zip|rar)$/i)) { icon = 'fa-file-zipper'; iconColor = '#eab308'; }
+                                    else if(file.name.toLowerCase().match(/\.(doc|docx)$/i)) { icon = 'fa-file-word'; iconColor = '#3b82f6'; }
+                                    return `
+                                    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-body); padding:10px 12px; border-radius:6px; border:1px solid var(--border);">
+                                        <div style="display:flex; align-items:center; gap:10px; overflow:hidden;"><i class="fa-solid ${icon}" style="color:${iconColor}; font-size:1.2rem;"></i><span style="color:white; font-size:0.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${file.name}</span></div>
+                                        <a href="${file.url}" target="_blank" class="btn btn-secondary btn-sm" style="padding:4px 8px; flex-shrink:0;"><i class="fa-solid fa-download"></i></a>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `).join('');
+
+                    let zipBtn = '';
+                    if(lead.status === 'Project Completed' || lead.status === 'Project Successful') {
+                        zipBtn = `<button class="btn btn-primary btn-sm" style="background:var(--success); color:#000;" onclick="downloadAllAsZip('${lead.id}')"><i class="fa-solid fa-file-zipper"></i> Download Final Delivery (ZIP)</button>`;
+                    }
+
+                    html += `
+                        <div class="panel" style="margin:0;">
+                            <div class="panel-header" style="background:rgba(255,255,255,0.03); padding:15px 24px; border-bottom:1px solid var(--border);">
+                                <div><h3 style="font-size:1.2rem; color:white; margin:0;">${lead.clientName}</h3><span style="font-size:0.85rem; color:var(--text-muted);"><i class="fa-solid fa-folder-tree"></i> ${projName}</span></div>
+                                <div>${zipBtn}</div>
+                            </div>
+                            <div class="panel-body" style="padding:24px;">${catHtml}</div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+            document.getElementById('app-canvas').innerHTML = html;
+        }
+
+        async function downloadAllAsZip(leadId) {
+            const lead = myLeads.find(l => l.id === leadId);
+            if(!lead || !lead.attachments) return showToast("No files found.", "error");
+            const finalFiles = lead.attachments.filter(a => ['Reference Zips', 'AI Report', 'Plagiarism Report', 'Word File', 'PDF File', 'Final Delivery'].includes(a.category));
+            if(finalFiles.length === 0) return showToast("No final delivery files found.", "warning");
+            showToast("Generating ZIP. Please wait...", "success");
+            const zip = new JSZip();
+            const folderName = `Project_${lead.domain}`;
+            const folder = zip.folder(folderName);
+            try {
+                for (let i = 0; i < finalFiles.length; i++) {
+                    const response = await fetch(finalFiles[i].url); const blob = await response.blob(); folder.file(finalFiles[i].name, blob);
+                }
+                const zipContent = await zip.generateAsync({ type: "blob" });
+                saveAs(zipContent, `${folderName}.zip`); showToast("ZIP Downloaded Successfully!", "success");
+            } catch(e) { showToast("Error generating ZIP. Allow popups/downloads.", "error"); }
+        }
+
+
+        // --- EARN WITH US ---
+                // --- EXPLORE ZONE ---
+        function renderEarn() {
+            document.getElementById('app-canvas').innerHTML = `
+                <div class="page-header"><div><h2>Earn With Us (12.5% Referral)</h2><p style="color:var(--text-muted)">Refer a scholar and earn 12.5% cashback on their total project value.</p></div></div>
+                <div class="form-grid">
+                    <div style="grid-column:span 2; display:flex; justify-content:center; margin-bottom:20px;">
+                        <img src="https://raw.githubusercontent.com/svmcoder/storage/main/storagex/crm_files/crm_VWZHJ3.jpg" style="max-width:100%; border-radius:12px; border:1px solid var(--border); box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+                    </div>
+                    <div class="panel" style="grid-column:span 2; margin:0;">
+                        <div class="panel-body" style="text-align:center;">
+                            <h3 style="color:white; margin-bottom:15px; font-size:1.5rem;">Claim Your Referral</h3>
+                            <p style="color:var(--text-muted); margin-bottom:20px;">If you have referred someone, click the button below to notify our sales team and claim your reward.</p>
+                            <button class="btn btn-primary" style="padding:15px 30px; font-size:1.1rem;" onclick="openReferralModal()"><i class="fa-solid fa-hand-holding-dollar"></i> Report a Referral</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openReferralModal() {
+            showModal('Claim Referral Bonus', `
+                <div class="form-group full">
+                    <label>Details of the person you referred *</label>
+                    <textarea id="ref-details" class="form-control" style="min-height:100px;" placeholder="Name, Phone Number, and Project Domain of the person you referred..."></textarea>
+                </div>
+            `, `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="submitReferralClaim()"><i class="fa-solid fa-paper-plane"></i> Send to Support</button>`);
+            document.getElementById('modal-card-inner').className = 'modal-card sm';
+        }
+
+        async function submitReferralClaim() {
+            const desc = document.getElementById('ref-details').value.trim();
+            if(!desc) return showToast("Please provide referral details.", "error");
+            // Assuming Admin has a "support_tickets" collection to read this
+            await db.collection('support_tickets').add({ clientEmail: currentUser.email, clientName: clientData.name, type: 'Referral Claim', details: desc, status: 'Open', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            showToast("Referral claim sent to Sales Team!"); closeModal();
+        }
+
+        function renderCommunity() {
+            document.getElementById('app-canvas').innerHTML = `
+                <div class="page-header"><div><h2>Research Community</h2><p style="color:var(--text-muted)">Join thousands of scholars globally.</p></div></div>
+                <div class="panel" ; margin:0 auto;">
+                    <div class="panel-body" style="text-align:center; padding:40px;">
+                        <i class="fa-brands fa-whatsapp" style="font-size:5rem; color:#25D366; margin-bottom:20px;"></i>
+                        <h3 style="color:white; font-size:1.8rem; margin-bottom:15px;">Join our WhatsApp Group</h3>
+                        <p style="color:var(--text-muted); margin-bottom:30px; font-size:1.1rem;">Connect with experts, get daily insights, and stay updated with the latest research methodologies.</p>
+                        
+                        <div style="background:rgba(255,255,255,0.05); padding:15px 15px; border-radius:8px; border:1px solid var(--border); margin-bottom:25px;text-align:center;justify-content:center;align-items:center">
+                          <div style="background:white;padding:5px 5px;margin-bottom:10px;">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://chat.whatsapp.com/HIgILvjqVq288UBhW0WmG0" alt="QR Code" style="border-radius:8px; margin-bottom:15px;padding:20px 20px">
+                          </div>
+                            <div style="display:flex; gap:10px; justify-content:center;">
+                                <a href="https://chat.whatsapp.com/HIgILvjqVq288UBhW0WmG0" target="_blank" class="btn btn-primary" style="background:#25D366; color:#000;"><i class="fa-solid fa-link"></i> Join via Link</a>
+                                <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('https://chat.whatsapp.com/HIgILvjqVq288UBhW0WmG0'); showToast('Link Copied!')"><i class="fa-solid fa-copy"></i> Share</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderWebinar() {
+            document.getElementById('app-canvas').innerHTML = `
+                <div class="page-header"><div><h2>Expert Webinars</h2><p style="color:var(--text-muted)">Enhance your research skills.</p></div></div>
+                <div class="form-grid">
+                    <div style="grid-column:span 2; display:flex; justify-content:center; margin-bottom:20px;">
+                        <img src="https://raw.githubusercontent.com/svmcoder/storage/main/storagex/crm_files/crm_J6TBSK.png" style="max-width:100%; border-radius:12px; border:1px solid var(--border); box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+                    </div>
+                    <div class="panel" style="grid-column:span 2; margin:0;">
+                        <div class="panel-body" style="text-align:center;">
+                            <h3 style="color:white; margin-bottom:15px; font-size:1.5rem;">Two-Day Paid Research Webinar</h3>
+                            <p style="color:var(--text-muted); margin-bottom:20px;">Get exclusive access to expert-led 90-minute sessions. Limited spots available. ₹999/- only.</p>
+                            <button class="btn btn-primary" style="padding:15px 30px; font-size:1.1rem; background:var(--info);" onclick="openWebinarEnrollModal()"><i class="fa-solid fa-chalkboard-user"></i> Enroll Now</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openWebinarEnrollModal() {
+            showModal('Enroll in Webinar', `
+                <div class="form-group full"><label>Desired Webinar Topic *</label><input type="text" id="web-topic" class="form-control" placeholder="E.g. SPSS Data Analysis Basics" required></div>
+                <div class="form-group"><label>Full Name</label><input type="text" id="web-name" class="form-control" value="${clientData.name}" disabled></div>
+                <div class="form-group"><label>Phone Number</label><input type="text" id="web-phone" class="form-control" value="${clientData.phone}" disabled></div>
+                <p style="color:var(--warning); font-size:0.8rem; margin-top:15px; text-align:center;">Our team will contact you for payment processing. Once verified, your access link will appear here.</p>
+            `, `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="submitWebinarEnroll()"><i class="fa-solid fa-paper-plane"></i> Confirm Request</button>`);
+            document.getElementById('modal-card-inner').className = 'modal-card sm';
+        }
+
+        async function submitWebinarEnroll() {
+            const topic = document.getElementById('web-topic').value.trim();
+            if(!topic) return showToast("Please enter a desired topic.", "error");
+            await db.collection('support_tickets').add({ clientEmail: currentUser.email, clientName: clientData.name, phone: clientData.phone, type: 'Webinar Enrollment', details: `Topic: ${topic}`, status: 'Open', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            showToast("Enrollment requested! We will contact you shortly."); closeModal();
+        }
+
+
+        // --- FINANCIALS ---
+                function renderFinancials() {
+            const totalPaid = myPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+            
+            // Group payments by Project/Lead ID
+            let groupedPayments = {};
+            myPayments.forEach(p => {
+                if(!groupedPayments[p.leadId]) groupedPayments[p.leadId] = { projectName: p.clientName, payments: [] };
+                // Fetch actual project title if available
+                let lead = myLeads.find(l => l.id === p.leadId);
+                if(lead) groupedPayments[p.leadId].projectName = lead.Title || lead.service;
+                
+                groupedPayments[p.leadId].payments.push(p);
+            });
+
+            let historyHtml = '';
+            if(Object.keys(groupedPayments).length === 0) {
+                historyHtml = `<div class="empty-state"><i class="fa-solid fa-money-check"></i><h3>No transaction records</h3></div>`;
+            } else {
+                // Generate grouped UI
+                Object.keys(groupedPayments).forEach(leadId => {
+                    const group = groupedPayments[leadId];
+                    let rows = group.payments.sort((a,b) => new Date(b.createdAt?.seconds*1000) - new Date(a.createdAt?.seconds*1000)).map(p => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 20px; border-top:1px solid var(--border); background:var(--bg-body);">
+                            <div style="display:flex; flex-direction:column;">
+                                <strong style="color:var(--primary-purple); font-size:0.9rem;">${p.phase}</strong>
+                                <span style="font-size:0.8rem; color:var(--text-muted);"><i class="fa-regular fa-calendar"></i> ${p.date} | Via ${p.method}</span>
+                            </div>
+                            <strong style="color:var(--success); font-size:1.1rem;">₹${Number(p.amount).toLocaleString('en-IN')}</strong>
+                        </div>
+                    `).join('');
+
+                    historyHtml += `
+                        <div style="margin-bottom:20px; border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+                            <div style="background:rgba(255,255,255,0.03); padding:15px 20px; border-bottom:1px solid var(--border);">
+                                <strong style="color:white; font-size:1.1rem;">${group.projectName}</strong>
+                            </div>
+                            ${rows}
+                        </div>
+                    `;
+                });
+            }
+
+            document.getElementById('app-canvas').innerHTML = `
+                <div class="page-header"><div><h2>Transaction History</h2><p style="color:var(--text-muted)">Securely tracked verified payments.</p></div></div>
+                <div style="display: flex; margin-bottom: 24px;">
+                    <div class="stat-card" style="border-bottom: 3px solid var(--success); min-width: 280px; margin: 0; padding: 24px;">
+                        <div style="color:var(--text-muted); font-size:0.85rem; font-weight:700; text-transform:uppercase; margin-bottom:10px;">Total Successful Processing</div>
+                        <div style="font-size:2.2rem; font-weight:800; color:white;">₹${totalPaid.toLocaleString('en-IN')}</div>
+                    </div>
+                </div>
+                <div class="panel" style="box-shadow:none; border:none; background:transparent;">
+                    ${historyHtml}
+                </div>
+            `;
+        }
+
+
+        // --- COMMUNITY ---
+        function renderAnnouncements() {
+            document.getElementById('app-canvas').innerHTML = `
+                <div class="page-header"><div><h2>Official Announcements</h2><p style="color:var(--text-muted)">Latest updates from the admin team.</p></div></div>
+                <div style="display:flex; flex-direction:column; gap:15px; max-width:800px;">
+                    ${allPosts.map(p => `
+                        <div class="panel" style="margin:0;">
+                            <div class="panel-body">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                                    <strong style="color:var(--primary-purple);">${p.authorName}</strong>
+                                    <span style="font-size:0.8rem; color:var(--text-muted);">${timeAgo(p.createdAt)}</span>
+                                </div>
+                                <p style="color:white; line-height:1.6;">${p.text}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderEvents() {
+            document.getElementById('app-canvas').innerHTML = `
+                <div class="page-header"><div><h2>Upcoming Events</h2><p style="color:var(--text-muted)">Webinars and training sessions.</p></div></div>
+                <div class="grid-stats">
+                    ${allEvents.length===0 ? `<div class="empty-state" style="grid-column:span 2;"><i class="fa-solid fa-calendar-xmark"></i><h3>No upcoming events</h3></div>` : allEvents.map(e => `
+                        <div class="panel" style="margin:0; border-top: 3px solid var(--info); display:flex; flex-direction:column;">
+                            <div class="panel-body" style="display:flex; flex-direction:column; flex:1;">
+                                <h3 style="color:white; margin-bottom:10px; font-size:1.2rem;">${e.title}</h3>
+                                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px; line-height:1.5; flex:1;">${e.description}</p>
+                                <span class="badge bg-info" style="align-self:flex-start; margin-bottom:20px;"><i class="fa-regular fa-calendar"></i> ${e.validity}</span>
+                                <button class="btn btn-primary" style="width:100%;" onclick="showToast('Successfully registered! You will receive an email shortly.', 'success')">Register Now</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+                // --- SECURE CHAT ENGINE (CLIENT SIDE) ---
+        let activeChatListener = null;
+        let selectedChatLeadId = null;
+
+        function renderSecureChat() {
+            // Only show projects that are active or in negotiation
+            const activeProjs = myLeads.filter(l => ['Technical Call', 'Follow Ups', 'Negotiation', 'Converted', 'Project Outlines', 'Project Processing', 'Project Changes/Review'].includes(l.status));
+            
+            let listHtml = activeProjs.map(l => `
+                <div class="chat-list-item ${selectedChatLeadId === l.id ? 'active' : ''}" onclick="openChatThread('${l.id}')">
+                    <div>
+                        <strong style="color:white; font-size:0.95rem; display:block; margin-bottom:4px;">${l.Title ? l.Title.substring(0,25)+'...' : l.service}</strong>
+                        <span style="font-size:0.75rem; color:var(--text-muted);"><i class="fa-solid fa-user-tie"></i> Acc. Manager</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="color:var(--border); font-size:0.8rem;"></i>
+                </div>
+            `).join('');
+
+            const html = `
+                <div class="chat-container" style="flex-direction: row;">
+                    <div class="chat-sidebar">
+                        <div style="padding:15px 20px; border-bottom:1px solid var(--border); background:var(--bg-body);"><h3 style="font-size:1rem; color:white; margin:0;">Active Projects</h3></div>
+                        <div class="chat-list">${listHtml || '<div style="padding:20px; color:var(--text-muted); text-align:center;">No active projects to discuss.</div>'}</div>
+                    </div>
+                    <div class="chat-main" id="chat-main-window">
+                        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); text-align:center; padding:20px;">
+                            <i class="fa-regular fa-comments" style="font-size:4rem; margin-bottom:15px; opacity:0.3;"></i>
+                            <h3 style="color:white; margin-bottom:5px;">Select a Project</h3>
+                            <p>Send messages and files securely to your Account Manager.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('app-canvas').innerHTML = html;
+            
+            // Auto-open first chat if none selected
+            if(!selectedChatLeadId && activeProjs.length > 0) openChatThread(activeProjs[0].id);
+            else if(selectedChatLeadId) openChatThread(selectedChatLeadId);
+        }
+
+        function openChatThread(leadId) {
+            selectedChatLeadId = leadId;
+            const lead = myLeads.find(l => l.id === leadId);
+            if(!lead) return;
+
+            // Update UI Sidebar selection
+            document.querySelectorAll('.chat-list-item').forEach(el => el.classList.remove('active'));
+            const activeEl = Array.from(document.querySelectorAll('.chat-list-item')).find(el => el.innerHTML.includes(lead.Title ? lead.Title.substring(0,25) : lead.service));
+            if(activeEl) activeEl.classList.add('active');
+
+            const chatWindow = document.getElementById('chat-main-window');
+            chatWindow.innerHTML = `
+                <div class="chat-header">
+                    <div>
+                        <h3 style="font-size:1.1rem; color:white; margin-bottom:4px;">Account Manager</h3>
+                        <span style="font-size:0.8rem; color:var(--primary-purple);"><i class="fa-solid fa-folder-open"></i> ${lead.Title || lead.service}</span>
+                    </div>
+                    <span class="badge bg-purple">Secured Chat</span>
+                </div>
+                <div class="chat-messages" id="chat-messages-box">
+                    <div style="text-align:center; margin-top:40px;"><i class="fa-solid fa-circle-notch fa-spin" style="color:var(--primary-purple); font-size:2rem;"></i></div>
+                </div>
+                              <div id="chat-file-preview" style="display:none; padding:10px 24px; background:rgba(168,85,247,0.05); border-top:1px solid var(--border);"></div>
+                
+                <div class="upload-progress-box" id="client-progress-box">
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:white; font-weight:bold;">
+                        <span id="client-progress-text">Sending securely...</span>
+                        <span id="client-progress-pct" style="color:var(--primary-purple);">0%</span>
+                    </div>
+                    <div class="progress-track"><div class="progress-fill" id="client-progress-bar"></div></div>
+                </div>
+
+
+                <div class="chat-input-area">
+                    <div class="chat-attach-btn" title="Attach File">
+                        <i class="fa-solid fa-paperclip"></i>
+                        <input type="file" id="chat-file-input" onchange="previewChatFile()">
+                    </div>
+                    <textarea id="chat-input-box" placeholder="Type your message here..." onkeypress="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendChatMessage('${leadId}'); }"></textarea>
+                    <button class="btn btn-primary" id="chat-send-btn" style="height:45px; padding:0 20px;" onclick="sendChatMessage('${leadId}')"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            `;
+
+            // Setup Realtime Listener
+            if(activeChatListener) activeChatListener(); // Unsubscribe from previous
+            
+            activeChatListener = db.collection('leads').doc(leadId).collection('messages').orderBy('timestamp').onSnapshot(snap => {
+                const box = document.getElementById('chat-messages-box');
+                if(!box) return;
+
+                let msgs = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                
+                // IMPORTANT: Clients should only see messages from 'Client' or 'Sales' (Middleman)
+                // They should NOT see messages directly sent by 'Writer' unless Sales forwarded them.
+                                // 🔒 STRICT FIREWALL FOR CLIENT:
+                // Only sees their own messages and messages explicitly approved/sent by Manager.
+                msgs = msgs.filter(m => m.senderType === 'Client' || m.senderType === 'Sales');
+
+
+                if(msgs.length === 0) {
+                    box.innerHTML = '<div style="text-align:center; color:var(--text-muted); margin-top:40px;">No messages yet. Send a message or file to your Account Manager.</div>';
+                } else {
+                    box.innerHTML = msgs.map(m => {
+                        const isMe = m.senderType === 'Client';
+                        
+                        let fileHtml = '';
+                        if(m.fileUrl) {
+                            let icon = 'fa-file';
+                            if(m.fileName.match(/\.(jpg|jpeg|png)$/i)) icon = 'fa-image';
+                            else if(m.fileName.match(/\.(pdf)$/i)) icon = 'fa-file-pdf';
+                            else if(m.fileName.match(/\.(doc|docx)$/i)) icon = 'fa-file-word';
+                            else if(m.fileName.match(/\.(zip|rar)$/i)) icon = 'fa-file-zipper';
+
+                            fileHtml = `
+                                <a href="${m.fileUrl}" target="_blank" class="file-preview" style="text-decoration:none; color:white; display:inline-flex; width:100%; margin-bottom:${m.text ? '10px' : '0'};">
+                                    <i class="fa-solid ${icon}"></i>
+                                    <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${m.fileName}</span>
+                                    <i class="fa-solid fa-download" style="color:var(--text-muted);"></i>
+                                </a>
+                            `;
+                        }
+
+                        return `
+                            <div class="msg-row ${isMe ? 'mine' : 'theirs'}">
+                                <div class="msg-bubble">
+                                    ${fileHtml}
+                                    ${m.text ? `<span>${m.text}</span>` : ''}
+                                </div>
+                                <div class="msg-meta">
+                                    ${isMe ? '' : `<span style="font-weight:bold; color:var(--text-main);">Account Manager</span> • `}
+                                    ${timeAgo(m.timestamp)}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    // Auto-scroll to bottom
+                    setTimeout(() => box.scrollTop = box.scrollHeight, 100);
+                }
+            });
+        }
+
+        // --- GITHUB UPLOAD ENGINE FOR CHAT ---
+        let pendingChatFile = null;
+
+        function previewChatFile() {
+            const input = document.getElementById('chat-file-input');
+            if(input.files.length > 0) {
+                pendingChatFile = input.files[0];
+                document.getElementById('chat-file-preview').style.display = 'flex';
+                document.getElementById('chat-file-preview').innerHTML = `
+                    <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                        <div style="display:flex; align-items:center; gap:10px; color:white;">
+                            <i class="fa-solid fa-paperclip" style="color:var(--primary-purple);"></i>
+                            <span style="font-size:0.85rem;">Attached: <strong>${pendingChatFile.name}</strong></span>
+                        </div>
+                        <button style="background:none; border:none; color:var(--danger); cursor:pointer;" onclick="clearChatFile()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                `;
+            }
+        }
+
+        function clearChatFile() {
+            pendingChatFile = null;
+            document.getElementById('chat-file-input').value = '';
+            document.getElementById('chat-file-preview').style.display = 'none';
+            document.getElementById('chat-file-preview').innerHTML = '';
+        }
+
+                function runClientProgressSim() {
+            const box = document.getElementById('client-progress-box');
+            const bar = document.getElementById('client-progress-bar');
+            const pct = document.getElementById('client-progress-pct');
+            box.style.display = 'block'; bar.style.width = '0%';
+            
+            let p = 0;
+            return setInterval(() => {
+                if(p < 90) { p += Math.random() * 15; if(p>90) p=90; bar.style.width = p + '%'; pct.innerText = Math.floor(p) + '%'; }
+            }, 300);
+        }
+
+        async function sendChatMessage(leadId) {
+            const input = document.getElementById('chat-input-box');
+            let text = input.value.trim();
+            if(!text && !pendingChatFile) return; 
+
+            const btn = document.getElementById('chat-send-btn');
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+            let fileData = null;
+            let simInterval = null;
+
+            try {
+                if(pendingChatFile) {
+                    simInterval = runClientProgressSim();
+                    const ext = pendingChatFile.name.split(".").pop(); 
+                    const code = Math.random().toString(36).substring(2, 8).toUpperCase(); 
+                    const path = `${GIT_ROOT}/crm_files/chat_${code}.${ext}`;
+                    
+                    const base64 = await new Promise(resolve => { const r = new FileReader(); r.onload = () => resolve(r.result.split(',')[1]); r.readAsDataURL(pendingChatFile); });
+                    const res = await fetch(`https://api.github.com/repos/${GIT_USER}/${GIT_REPO}/contents/${path}`, { method: "PUT", headers: { "Authorization": `Bearer ${GIT_TOKEN}`, "Accept": "application/vnd.github+json" }, body: JSON.stringify({ message: `Client Chat Upload`, content: base64, branch: GIT_BRANCH }) });
+                    
+                    if(!res.ok) throw new Error("File upload failed.");
+                    
+                    fileData = { fileName: pendingChatFile.name, fileUrl: `https://raw.githubusercontent.com/${GIT_USER}/${GIT_REPO}/main/${path}` };
+
+                    await db.collection('crm_files').add({ filename: pendingChatFile.name, url: fileData.fileUrl, category: 'Client Upload', leadId: leadId, clientEmail: currentUser.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+
+                    clearInterval(simInterval);
+                    document.getElementById('client-progress-bar').style.width = '100%';
+                    document.getElementById('client-progress-pct').innerText = '100%';
+                    setTimeout(()=> { document.getElementById('client-progress-box').style.display = 'none'; }, 1000);
+                }
+
+                text = text.replace(/\n/g, "<br>");
+                let payload = { senderType: 'Client', senderEmail: currentUser.email, timestamp: firebase.firestore.FieldValue.serverTimestamp(), read: false };
+                if(text) payload.text = text;
+                if(fileData) { payload.fileName = fileData.fileName; payload.fileUrl = fileData.fileUrl; }
+
+                await db.collection('leads').doc(leadId).collection('messages').add(payload);
+
+                input.value = ''; clearChatFile();
+            } catch (error) {
+                if(simInterval) clearInterval(simInterval);
+                document.getElementById('client-progress-box').style.display = 'none';
+                showToast("Failed to send message/file.", "error");
+            } finally {
+                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+            }
+        }
+
+
+    </script>
+    <style type="text/css" media="all">
+                /* --- CHAT UI --- */
+        .chat-container { display: flex; flex-direction: column; height: calc(100vh - 160px); background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        .chat-sidebar { width: 300px; border-right: 1px solid var(--border); background: rgba(255,255,255,0.01); display: flex; flex-direction: column; }
+        .chat-list { overflow-y: auto; flex: 1; }
+        .chat-list-item { padding: 15px 20px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .chat-list-item:hover { background: rgba(168,85,247,0.05); }
+        .chat-list-item.active { background: rgba(168,85,247,0.1); border-left: 3px solid var(--primary-purple); }
+        .chat-main { flex: 1; display: flex; flex-direction: column; background: var(--bg-body); }
+        .chat-header { padding: 15px 24px; border-bottom: 1px solid var(--border); background: var(--bg-card); display: flex; justify-content: space-between; align-items: center; }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        
+        .msg-row { display: flex; flex-direction: column; max-width: 80%; }
+        .msg-row.mine { align-self: flex-end; align-items: flex-end; }
+        .msg-row.theirs { align-self: flex-start; align-items: flex-start; }
+        .msg-bubble { padding: 12px 16px; border-radius: 12px; font-size: 0.95rem; line-height: 1.5; word-break: break-word; }
+        .msg-row.mine .msg-bubble { background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: white; border-bottom-right-radius: 4px; }
+        .msg-row.theirs .msg-bubble { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); border-bottom-left-radius: 4px; }
+        .msg-meta { font-size: 0.7rem; color: var(--text-muted); margin-top: 5px; display: flex; gap: 8px; align-items: center; }
+        
+        .chat-input-area { padding: 15px 24px; border-top: 1px solid var(--border); background: var(--bg-card); display: flex; gap: 10px; align-items: flex-end; }
+        .chat-input-area textarea { flex: 1; background: var(--bg-body); border: 1px solid var(--border); padding: 12px 16px; border-radius: 8px; color: white; resize: none; min-height: 45px; max-height: 120px; transition: 0.3s; }
+        .chat-input-area textarea:focus { border-color: var(--primary-purple); }
+        .chat-attach-btn { width: 45px; height: 45px; border-radius: 8px; background: var(--bg-body); border: 1px solid var(--border); color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; flex-shrink: 0; position: relative; overflow: hidden; }
+        .chat-attach-btn:hover { border-color: var(--primary-purple); color: var(--primary-purple); }
+        .chat-attach-btn input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        
+        .file-preview { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 6px; border: 1px solid var(--border); margin-top: 8px; font-size: 0.85rem; }
+        .file-preview i { color: var(--primary-purple); font-size: 1.2rem; }
+        /* CLIENT UPLOAD PROGRESS BAR */
+        .upload-progress-box { display: none; padding: 15px 24px; background: rgba(168,85,247,0.05); border-top: 1px solid var(--border); }
+        .progress-track { width: 100%; height: 8px; background: rgba(0,0,0,0.5); border-radius: 4px; overflow: hidden; margin-top: 8px; border: 1px solid var(--border); }
+        .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary-purple), var(--accent-dark)); transition: width 0.2s ease; }
+
+    </style>
+</body>
+</html>
